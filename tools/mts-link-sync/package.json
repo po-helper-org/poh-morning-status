@@ -1,0 +1,22 @@
+{
+  "name": "mts-link-sync",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "description": "Export MTS Link chat messages into markdown for the PO morning brief. Read-only, cursor-aware.",
+  "engines": {
+    "node": ">=21"
+  },
+  "scripts": {
+    "login": "node login.mjs",
+    "status": "node sync.mjs --status",
+    "list": "node sync.mjs --list-chats",
+    "pull": "node sync.mjs --pull --since-last",
+    "test": "node --test 'test/*.test.mjs'",
+    "postinstall": "playwright install chromium"
+  },
+  "dependencies": {
+    "playwright": "^1.40.0",
+    "yaml": "^2.9.0"
+  }
+}
