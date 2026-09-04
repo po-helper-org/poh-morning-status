@@ -1,0 +1,24 @@
+# Secrets and sessions — never committed
+.env
+secrets/
+state/
+*.session
+*.session-journal
+auth.json
+
+# Channel dumps: raw source data, lives in the PO vault, not here
+data/
+*-out/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+
+# Node
+node_modules/
+
+# OS
+.DS_Store
