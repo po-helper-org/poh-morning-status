@@ -13,7 +13,7 @@
     "list": "node sync.mjs --list-chats",
     "pull": "node sync.mjs --pull --since-last",
     "test": "node --test 'test/*.test.mjs'",
-    "postinstall": "playwright install chromium"
+    "browser": "playwright install chromium"
   },
   "dependencies": {
     "playwright": "^1.40.0",

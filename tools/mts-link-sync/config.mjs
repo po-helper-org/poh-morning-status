@@ -15,12 +15,16 @@
 import { homedir } from "node:os";
 import { join, isAbsolute, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { existsSync } from "node:fs";
+import { existsSync, statSync } from "node:fs";
 
 const TOOL_DIR = dirname(fileURLToPath(import.meta.url));
 
-// --- load .env from the tool directory, if present (built-in, no dependency) ---
-try { process.loadEnvFile(join(TOOL_DIR, ".env")); } catch { /* no .env — use real env */ }
+// --- load .env, if present (built-in, no dependency) ---
+// Real environment variables win: `loadEnvFile` does not overwrite what is already set.
+// MTS_LINK_ENV_FILE redirects which file is read, so one checkout can serve several
+// vaults and so diagnostics can be exercised against a known-empty environment.
+const ENV_FILE = process.env.MTS_LINK_ENV_FILE || join(TOOL_DIR, ".env");
+try { process.loadEnvFile(ENV_FILE); } catch { /* no .env — use real env */ }
 
 // Resolve a path setting: absolute stays, `~` expands, relative is anchored to the tool dir.
 function resolvePath(value, fallback) {
@@ -75,13 +79,33 @@ export function cursorFile() {
  * Reports what is set, what is missing, and whether the paths actually exist —
  * so a wrong path is visible before a pull, not after a silent empty result.
  */
+/**
+ * Days after which a saved SSO session is called out as probably stale.
+ * Observed corporate lifetime is shorter than this; the check is a hint, not a verdict.
+ */
+export const AUTH_STALE_DAYS = 7;
+
 export function describeConfig() {
-  const out = { ok: true, problems: [], authFile: AUTH_FILE, chatsUrl: CHATS_URL };
+  const out = { ok: true, problems: [], warnings: [], authFile: AUTH_FILE, chatsUrl: CHATS_URL };
 
   out.authExists = existsSync(AUTH_FILE);
   if (!out.authExists) {
     out.ok = false;
     out.problems.push(`Нет SSO-сессии (${AUTH_FILE}). Разовый вход: npm run login`);
+  } else {
+    // Presence is not validity: a corporate SSO session expires on the server, and the
+    // file on disk looks identical before and after. Only a live request proves it, so
+    // age is reported as a warning rather than asserted as a verdict — the alternative
+    // (staying silent) let `--status` answer "Всё на месте" about a session that had
+    // been dead for weeks, which is the same silent-zero failure this tool exists to
+    // avoid.
+    out.authAgeDays = Math.floor((Date.now() - statSync(AUTH_FILE).mtimeMs) / 86400000);
+    if (out.authAgeDays >= AUTH_STALE_DAYS) {
+      out.warnings.push(
+        `SSO-сессии ${out.authAgeDays} дн — вероятно протухла. Проверяется только сетевым вызовом; ` +
+        "если выгрузка скажет «Session expired» — npm run login"
+      );
+    }
   }
 
   if (!rawOutput) {

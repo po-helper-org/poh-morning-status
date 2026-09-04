@@ -97,7 +97,7 @@ function printStatus() {
   const cfg = describeConfig();
   console.log("Конфигурация mts-link-sync\n");
   console.log(`  SSO-сессия:  ${cfg.authFile}`);
-  console.log(`               ${cfg.authExists ? "есть" : "НЕТ → npm run login"}`);
+  console.log(`               ${cfg.authExists ? `есть, обновлена ${cfg.authAgeDays} дн назад` : "НЕТ → npm run login"}`);
   if (cfg.outputDir) {
     console.log(`  Выгрузки:    ${cfg.outputDir} ${cfg.outputExists ? "" : "(НЕ СУЩЕСТВУЕТ)"}`);
     console.log(`  Реестр:      ${cfg.registryFile} ${cfg.registryExists ? "" : "(НЕ НАЙДЕН)"}`);
@@ -127,9 +127,13 @@ function printStatus() {
   if (cfg.problems.length) {
     console.log("\nПроблемы:");
     for (const p of cfg.problems) console.log(`  · ${p}`);
-  } else {
-    console.log("\nВсё на месте.");
   }
+  if (cfg.warnings.length) {
+    console.log("\nПредупреждения:");
+    for (const w of cfg.warnings) console.log(`  · ${w}`);
+  }
+  if (!cfg.problems.length && !cfg.warnings.length) console.log("\nВсё на месте.");
+  else if (!cfg.problems.length) console.log("\nКонфигурация цела, но см. предупреждения выше.");
   return cfg.ok ? 0 : 1;
 }
 
