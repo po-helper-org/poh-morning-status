@@ -36,12 +36,31 @@ npm run status                  # проверить, что всё на мес�
 
 Загрузка Chromium вынесена из `postinstall` в отдельный `npm run browser`: под
 ограниченными правами `playwright install` падает с `EPERM` на системном кэше
-`~/Library/Caches/ms-playwright` и роняет всю установку, хотя нужный браузер там уже
-может лежать. Проверить, есть ли он:
+`~/Library/Caches/ms-playwright` и роняет всю установку.
+
+Если системный кэш недоступен или его чистят — ставь браузер рядом с инструментом:
 
 ```bash
-node -e "console.log(require('playwright').chromium.executablePath())"
+PLAYWRIGHT_BROWSERS_PATH=$PWD/.browsers npx playwright install chromium
 ```
+
+и пропиши в `.env`:
+
+```
+PLAYWRIGHT_BROWSERS_PATH=/абсолютный/путь/tools/mts-link-sync/.browsers
+```
+
+Проверить, какой бинарь будет использован:
+
+```bash
+node -e "import('./harvest.mjs').then(()=>console.log(require('playwright').chromium.executablePath()))"
+```
+
+Проверять надо именно так, через `harvest.mjs`. Playwright читает
+`PLAYWRIGHT_BROWSERS_PATH` один раз при вычислении модуля, а ESM поднимает все
+`import` наверх — поэтому `config.mjs` (он грузит `.env`) импортируется в
+`harvest.mjs` и `login.mjs` **первым**. Прямой `require('playwright')` покажет
+системный путь и соврёт.
 
 ## Почему `MTS_LINK_OUTPUT_DIR` обязателен
 

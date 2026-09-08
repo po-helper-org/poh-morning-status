@@ -6,9 +6,13 @@
 // and snag {wsUrl, token, orgId} off the frames it sends. wsClient.mjs then opens
 // its own socket with these — no browser needed during the actual pull.
 
+// config.mjs is imported FIRST on purpose: it loads `.env`, and Playwright reads
+// PLAYWRIGHT_BROWSERS_PATH once at module evaluation. ESM hoists all imports, so
+// listing "playwright" above config.mjs would evaluate it before the file is read
+// and the browser location from `.env` would be silently ignored.
+import { AUTH_FILE, CHATS_URL } from "./config.mjs";
 import { chromium } from "playwright";
 import { existsSync } from "node:fs";
-import { AUTH_FILE, CHATS_URL } from "./config.mjs";
 
 const TOKEN_RE = /"name":"token","param":\{"token":"([^"]+)"/;
 const ORG_RE = /"organizationId":"([0-9a-f-]{36})"/;

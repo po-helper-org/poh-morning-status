@@ -103,6 +103,7 @@ node sync.mjs --unwatch "<chat-id>"
 | `Session expired — redirected to login` | сессия протухла | СТОП, PO делает `npm run login` заново |
 | `Could not capture the chat WS token` | сменился протокол или не открылся сокет | СТОП, сообщить PO; чинится в инструменте, не обходится |
 | `Реестр пуст` при существующем файле | расхождение путей | прогнать `--status`, сверить `MTS_LINK_OUTPUT_DIR` |
+| `browserType.launch: Executable doesn't exist` | кэш браузеров почищен или недоступен | `PLAYWRIGHT_BROWSERS_PATH=$PWD/.browsers npx playwright install chromium`, путь прописать в `.env`; это чинится без PO |
 
 Протухшая сессия — **всегда СТОП**. Не пытайся логиниться скриптово: SSO проходит только
 PO, а попытка автоматизации ломает сессию.

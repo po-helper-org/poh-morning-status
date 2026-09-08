@@ -1,0 +1,3 @@
+
+# Local Playwright browsers (see README: system cache may be unwritable)
+.browsers/
