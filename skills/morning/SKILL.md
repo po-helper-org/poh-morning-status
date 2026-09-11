@@ -50,7 +50,8 @@ backlog milestone list --plain               # цели и прогресс
 ls GROUND/PULSE/morning/ 2>/dev/null | tail -2          # прошлый отчёт → дата дельты
 ls -t GROUND/RESULTS/ | grep sprint-report | grep '\.md$' | head -1   # последний отчёт спринта
 ls GROUND/PULSE/summaries GROUND/PULSE/radar GROUND/PULSE/daybook 2>/dev/null | grep "$yesterday"
-python3 <poh-morning-status>/tools/calendar-today/today.py --date $today   # созвоны
+python3 <poh-morning-status>/tools/calendar-today/today.py --date $today   # созвоны сегодня
+python3 <poh-morning-status>/tools/calendar-today/today.py --date $yesterday --json   # Activity за вчера
 ```
 
 `<poh-morning-status>` — чекаут репозитория (на этой машине
@@ -182,16 +183,39 @@ sources: [backlog.md, calendar|none, GROUND/RESULTS/<sprint-report>|none]
 ---
 ```
 
-2. Отрисовать слайды — детерминированно, из markdown, без правок руками:
+2. Записать данные слайда ретро в `GROUND/PULSE/morning/{today}.retro.json` —
+   из них рендерер собирает виджеты Activity/Tasks, панель карточки и черновик
+   заметки «Описать ретро»:
+
+```json
+{
+  "date": "{yesterday}",
+  "summary": "2–3 предложения «что сделано» — только результаты с id, стиль caveman + antislop",
+  "note_draft": "# Ретро {yesterday}\n\n## Что было\n…\n\n## Хронология\n- 11:00 … (PO-…)\n\n## Результаты\n- PO-… закрыта\n",
+  "activity": [{"start": "11:00", "end": "11:30", "title": "…", "with": ["…"], "organizer": "…", "agenda": "…"}],
+  "tasks": [{"id": "PO-105", "title": "…", "description": "…", "kr": "PO-78", "kr_title": "…",
+             "kind": "task", "priority": "high", "due": "2026-09-11", "done_at": "{yesterday}"}]
+}
+```
+
+   `activity` — события `today.py --date $yesterday --json` как есть (код 1 → `[]`);
+   `tasks` — закрытые вчера (`Done`/`Cancelled`, `updatedAt` = вчера), описание из
+   `backlog task <id> --json`; `kr_title` — заголовок KR по `okr-kr`. Нет закрытых — `[]`,
+   виджет покажет «закрытых задач нет». `note_draft` — хронология по времени событий и
+   `updatedAt` задач; чего нет в данных, в хронологии нет.
+
+3. Отрисовать слайды — детерминированно, из markdown и json, без правок руками:
 
 ```bash
 python3 <poh-morning-status>/tools/morning-slides/render.py GROUND/PULSE/morning/{today}.md
 ```
 
 Пишет `GROUND/PULSE/morning/{today}.html` (один файл, без внешних библиотек).
-Код выхода 1 — markdown не по шаблону; починить отчёт, не рендерер.
+Код выхода 1 — markdown не по шаблону; починить отчёт, не рендерер. Заметка «Описать
+ретро» правится в браузере и хранится в его localStorage; в волт она попадает кнопкой
+«Скачать .md» — руками PO, навык её не читает.
 
-3. Ответить в чат самим отчётом (markdown как есть) и одной строкой путями к `.md`
+4. Ответить в чат самим отчётом (markdown как есть) и одной строкой путями к `.md`
 и `.html`. Остановиться.
 
 Файлы — дневник PO, подтверждения не требуют; повторный запуск в тот же день

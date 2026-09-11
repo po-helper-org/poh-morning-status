@@ -30,3 +30,18 @@ class RenderTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+class RetroTest(unittest.TestCase):
+    def test_retro_widgets(self):
+        import json
+        data = json.loads((Path(__file__).parent / "sample.retro.json").read_text())
+        out = render(SAMPLE, data)
+        self.assertIn('id="retro-data"', out)
+        self.assertEqual(out.count('data-task="'), 2)
+        self.assertEqual(out.count('data-event="'), 2)
+        self.assertIn('id="retro-edge"', out)
+        self.assertIn('class="retro-summary"', out)
+        self.assertIn('<span class="id">PO-105</span>', out)   # ссылка в сводке подсвечена
+    def test_no_json_no_widgets(self):
+        out = render(SAMPLE, None)
+        self.assertNotIn('id="retro-data"', out)
