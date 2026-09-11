@@ -36,15 +36,17 @@ class RetroTest(unittest.TestCase):
         import json
         data = json.loads((Path(__file__).parent / "sample.retro.json").read_text())
         out = render(SAMPLE, data)
-        self.assertIn('id="retro-data"', out)
-        self.assertEqual(out.count('data-task="'), 2)
-        self.assertEqual(out.count('data-event="'), 2)
-        self.assertIn('id="retro-edge"', out)
-        self.assertIn(' data-retro>', out)
+        self.assertEqual(out.count('href="#task-'), 2)
+        self.assertEqual(out.count('href="#event-'), 2)
+        self.assertEqual(out.count('<aside class="sheet right"'), 4)   # панели отрисованы заранее, без JS
+        self.assertIn('href="#retro-note"', out)
+        self.assertIn('<section class="slide" id="retro" data-retro>', out)
+        self.assertNotIn('<script type="application/json"', out)
         self.assertNotIn('retro-summary', out)
         self.assertNotIn('data-download', out)
-        self.assertIn('data-task="0"><span class="check" data-done data-priority="high"></span><span class="id">PO-105</span>', out)
-        self.assertIn('data-task="1"><span class="check" data-done></span><span class="t">', out)   # без id — только заголовок
+        self.assertIn('href="#task-0"><span class="check" data-done data-priority="high"></span><span class="id">PO-105</span>', out)
+        self.assertIn('href="#task-1"><span class="check" data-done></span><span class="t">', out)   # без id — только заголовок
+        self.assertIn('<b>Источник:</b> Backlog.md: backlog/tasks/po-105', out)
     def test_source_required(self):
         bad = {"date": "2026-09-10", "tasks": [{"title": "Фикс вебхука"}], "activity": []}
         with self.assertRaises(ValueError):
@@ -54,4 +56,4 @@ class RetroTest(unittest.TestCase):
         self.assertEqual(out.count('Данных не найдено'), 3)   # два виджета + placeholder заметки
     def test_no_json_no_widgets(self):
         out = render(SAMPLE, None)
-        self.assertNotIn('id="retro-data"', out)
+        self.assertNotIn('id="retro-note"', out)

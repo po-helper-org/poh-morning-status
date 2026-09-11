@@ -8,7 +8,9 @@
 Если рядом лежит `<имя>.retro.json` (пишет навык), слайд «Ретро» становится
 интерактивным: виджеты Activity (созвоны за вчера) и Tasks (сделанное, с id или без)
 с панелью карточки справа — в ней обязательно «Источник»; вкладка «Описать ретро»
-слева видна только на этом слайде, заметка хранится в localStorage браузера.
+слева живёт внутри слайда и видна только на нём. Панели и заметка открываются через
+CSS `:target` — работают и там, где скрипты запрещены; JS нужен только стрелкам и
+автосохранению заметки в localStorage.
 Пустые данные — «Данных не найдено», ничего не додумывается. Строка без `source`
 — код выхода 1.
 
@@ -38,7 +40,7 @@ CSS = """
 :root{--ink:#1b1b1f;--muted:#6b6f76;--line:#e3e5e8;--soft:#f6f7f8;--red:#b3261e;--amber:#8a5a00;--amber-bg:#fff4e5}
 html,body{margin:0;height:100%;background:#111;color:var(--ink);font:16px/1.4 -apple-system,"Segoe UI",Roboto,sans-serif}
 .deck{height:100%;overflow-y:auto;scroll-snap-type:y mandatory}
-.slide{box-sizing:border-box;min-height:100vh;scroll-snap-align:start;background:#fff;padding:48px 64px;display:flex;flex-direction:column;border-bottom:8px solid #111}
+.slide{position:relative;box-sizing:border-box;min-height:100vh;scroll-snap-align:start;background:#fff;padding:48px 64px;display:flex;flex-direction:column;border-bottom:8px solid #111}
 .slide>header{display:flex;justify-content:space-between;align-items:baseline;border-bottom:2px solid var(--ink);padding-bottom:8px;margin-bottom:22px}
 .slide h2{font-size:28px;margin:0}.slide .n{color:var(--muted);font-size:14px}
 h1{font-size:44px;margin:0 0 8px}.sub{color:var(--muted);font-size:18px;margin-bottom:40px}
@@ -64,7 +66,7 @@ code{font-family:ui-monospace,Menlo,monospace;font-size:14px;background:var(--so
 .widget{border:1px solid var(--line);border-radius:10px;overflow:hidden}
 .widget>h4{margin:0;padding:10px 14px;font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);background:var(--soft);display:flex;justify-content:space-between}
 .widget .empty{padding:14px;color:var(--muted);font-size:14px}
-.row{display:flex;align-items:center;gap:10px;width:100%;padding:9px 14px;border:0;border-top:1px solid var(--line);background:transparent;text-align:left;cursor:pointer;font:inherit;color:var(--ink)}
+.row{display:flex;align-items:center;gap:10px;width:100%;box-sizing:border-box;padding:9px 14px;border:0;border-top:1px solid var(--line);background:transparent;text-align:left;cursor:pointer;font:inherit;color:var(--ink);text-decoration:none}
 .row:hover{background:var(--soft)}
 .row .t{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .row .m{color:var(--muted);font-size:13px;white-space:nowrap}
@@ -72,12 +74,12 @@ code{font-family:ui-monospace,Menlo,monospace;font-size:14px;background:var(--so
 .check[data-done]{background:#8b8f96;border-color:#8b8f96}
 .check[data-done]::after{content:"";width:9px;height:5px;margin-top:-2px;border-left:1.5px solid #fff;border-bottom:1.5px solid #fff;transform:rotate(-45deg)}
 .check[data-priority=high]{border-color:#e5484d}.check[data-priority=medium]{border-color:#4c8dff}
-.edge{display:none;position:fixed;left:0;top:50%;z-index:40;writing-mode:vertical-rl;transform:translateY(-50%) rotate(180deg);background:#d2302a;color:#fff;border:0;padding:16px 8px;font:600 13px/1 -apple-system,"Segoe UI",Roboto,sans-serif;letter-spacing:.08em;text-transform:uppercase;cursor:pointer}
-.edge[data-visible]{display:block}.edge:hover{background:#b3261e}
+.edge{position:absolute;left:0;top:50%;z-index:40;text-decoration:none;display:block;writing-mode:vertical-rl;transform:translateY(-50%) rotate(180deg);background:#d2302a;color:#fff;border:0;padding:16px 8px;font:600 13px/1 -apple-system,"Segoe UI",Roboto,sans-serif;letter-spacing:.08em;text-transform:uppercase;cursor:pointer}
+.edge:hover{background:#b3261e}
 .sheet .src{margin-top:18px;padding-top:12px;border-top:1px solid #2a2b2f;font-size:13px;color:#8b8f96;word-break:break-all}.sheet .src b{color:#d5d6da;font-weight:600}
 .sheet .saved{padding:6px 18px;font-size:12px;color:#8b8f96}
 .sheet{position:fixed;top:0;bottom:0;width:440px;max-width:96vw;display:none;flex-direction:column;z-index:44;background:#111214;color:#f0f0f2;box-shadow:0 0 24px rgba(0,0,0,.35);font-size:15px}
-.sheet[data-open]{display:flex}.sheet.right{right:0;border-left:1px solid #2a2b2f}.sheet.left{left:0;border-right:1px solid #2a2b2f}
+.sheet:target,.sheet[data-open]{display:flex}.sheet.right{right:0;border-left:1px solid #2a2b2f}.sheet.left{left:0;border-right:1px solid #2a2b2f}
 .sheet .head{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid #2a2b2f}
 .sheet .body{flex:1;overflow-y:auto;padding:14px 18px}
 .sheet .title{font-size:20px;font-weight:700;line-height:1.3;padding-bottom:8px}
@@ -85,6 +87,7 @@ code{font-family:ui-monospace,Menlo,monospace;font-size:14px;background:var(--so
 .sheet .foot{display:flex;align-items:center;gap:8px;padding:10px 14px;border-top:1px solid #2a2b2f;font-size:12px;color:#8b8f96}
 .sheet .foot .grow{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .sheet .chip{display:inline-flex;align-items:center;gap:6px;padding:3px 8px;border-radius:8px;color:#4c8dff;font-size:14px}
+.sheet a.ib{text-decoration:none}
 .sheet .ib{width:28px;height:28px;border:0;border-radius:6px;background:transparent;color:#8b8f96;cursor:pointer;font-size:16px;display:inline-flex;align-items:center;justify-content:center}
 .sheet .ib:hover{background:#1e1f23;color:#f0f0f2}
 .sheet .flag{color:#e5484d}
@@ -99,30 +102,11 @@ document.addEventListener('keydown',e=>{if(e.target.closest&&e.target.closest('t
 if(['ArrowDown','ArrowRight','PageDown',' '].includes(e.key)){e.preventDefault();slides[Math.min(i+1,slides.length-1)].scrollIntoView({behavior:'smooth'})}
 if(['ArrowUp','ArrowLeft','PageUp'].includes(e.key)){e.preventDefault();slides[Math.max(i-1,0)].scrollIntoView({behavior:'smooth'})}
 if(e.key==='Escape'){document.querySelectorAll('.sheet[data-open]').forEach(s=>s.removeAttribute('data-open'))}});
-const dataEl=document.getElementById('retro-data');
-if(dataEl){const R=JSON.parse(dataEl.textContent);const esc=s=>String(s??'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
-const sheet=document.getElementById('task-sheet');const drawer=document.getElementById('retro-drawer');
-const openSheet=h=>{sheet.innerHTML=h;sheet.setAttribute('data-open','');};
-const closeAll=()=>{sheet.removeAttribute('data-open')};
-document.querySelectorAll('[data-task]').forEach(b=>b.addEventListener('click',()=>{const t=R.tasks[+b.dataset.task];
-openSheet(`<div class="head"><span class="check" data-done ${t.priority?'data-priority="'+esc(t.priority)+'"':''}></span><span class="chip">&#128197; ${esc(t.done_at||t.due||'')}</span><span class="flag">${t.priority==='high'?'&#9873;':''}</span><span style="flex:1"></span><button class="ib" data-close>&#8250;</button></div>
-<div class="body"><div class="title">${esc(t.title)}</div><div class="desc">${esc(t.description||'')}</div><div class="src"><b>Источник:</b> ${esc(t.source)}</div></div>
-<div class="foot"><span class="ib">&#9993;</span><span class="ib">&#127991;</span><span class="id">${esc(t.id||'без id')}</span><span class="grow">${t.kr_title?'&middot; '+esc(t.kr_title):''}</span><button class="ib" data-close>&#10005;</button></div>`);}));
-document.querySelectorAll('[data-event]').forEach(b=>b.addEventListener('click',()=>{const ev=R.activity[+b.dataset.event];
-openSheet(`<div class="head"><span class="chip">&#128197; ${esc(R.date)} ${esc(ev.start)}${ev.end?'–'+esc(ev.end):''}</span><span style="flex:1"></span><button class="ib" data-close>&#8250;</button></div>
-<div class="body"><div class="title">${esc(ev.title)}</div><div class="desc">${esc((ev.with||[]).join(', '))}\n\n${esc(ev.agenda||'')}</div><div class="src"><b>Источник:</b> ${esc(ev.source)}</div></div>
-<div class="foot"><span class="grow">${esc(ev.organizer||'')}</span><button class="ib" data-close>&#10005;</button></div>`);}));
-sheet.addEventListener('click',e=>{if(e.target.closest('[data-close]'))closeAll()});
-const key='morning-retro-'+R.date;const ta=drawer.querySelector('textarea');const saved=drawer.querySelector('.saved');
+const drawer=document.getElementById('retro-note');
+if(drawer){const key='morning-retro-'+drawer.dataset.date;const ta=drawer.querySelector('textarea');const saved=drawer.querySelector('.saved');
 let stored=null;try{stored=localStorage.getItem(key)}catch(_){}
-ta.value=stored??R.note_draft??'';
-const persist=()=>{try{localStorage.setItem(key,ta.value);saved.textContent='сохранено в браузере '+new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'})}catch(_){saved.textContent='localStorage недоступен'}};
-ta.addEventListener('input',persist);
-const edge=document.getElementById('retro-edge');
-edge.addEventListener('click',()=>{drawer.toggleAttribute('data-open');if(drawer.hasAttribute('data-open'))ta.focus()});
-drawer.querySelector('[data-close]').addEventListener('click',()=>drawer.removeAttribute('data-open'));
-const retroSlide=document.querySelector('.slide[data-retro]');
-new IntersectionObserver(es=>{es.forEach(en=>{if(en.isIntersecting)edge.setAttribute('data-visible','');else{edge.removeAttribute('data-visible');drawer.removeAttribute('data-open');closeAll()}})},{threshold:.5}).observe(retroSlide);}
+if(stored!==null)ta.value=stored;
+ta.addEventListener('input',()=>{try{localStorage.setItem(key,ta.value);saved.textContent='сохранено в браузере '+new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'})}catch(_){saved.textContent='localStorage недоступен'}});}
 """
 
 
@@ -207,37 +191,74 @@ def validate_retro(data: dict) -> None:
                 raise ValueError(f"retro.json: {kind}[{i}] без title")
 
 
+RETRO_ANCHOR = "retro"
+
+
+def task_sheet(i: int, t: dict) -> str:
+    pr = t.get("priority") or ""
+    return (
+        f'<aside class="sheet right" id="task-{i}" role="dialog"><div class="head">'
+        f'<span class="check" data-done{" data-priority=\"" + html.escape(pr) + "\"" if pr else ""}></span>'
+        f'<span class="chip">&#128197; {html.escape(t.get("done_at") or t.get("due") or "")}</span>'
+        f'<span class="flag">{"&#9873;" if pr == "high" else ""}</span><span style="flex:1"></span>'
+        f'<a class="ib" href="#{RETRO_ANCHOR}" aria-label="закрыть">&#8250;</a></div>'
+        f'<div class="body"><div class="title">{html.escape(t.get("title", ""))}</div>'
+        f'<div class="desc">{html.escape(t.get("description") or "")}</div>'
+        f'<div class="src"><b>Источник:</b> {html.escape(t["source"])}</div></div>'
+        f'<div class="foot"><span class="ib">&#9993;</span><span class="ib">&#127991;</span>'
+        f'<span class="id">{html.escape(t.get("id") or "без id")}</span>'
+        f'<span class="grow">{"&middot; " + html.escape(t["kr_title"]) if t.get("kr_title") else ""}</span>'
+        f'<a class="ib" href="#{RETRO_ANCHOR}" aria-label="закрыть">&#10005;</a></div></aside>'
+    )
+
+
+def event_sheet(i: int, date: str, e: dict) -> str:
+    span = html.escape(e.get("start", "")) + (f'–{html.escape(e["end"])}' if e.get("end") else "")
+    who = ", ".join(e.get("with", []))
+    return (
+        f'<aside class="sheet right" id="event-{i}" role="dialog"><div class="head">'
+        f'<span class="chip">&#128197; {html.escape(date)} {span}</span><span style="flex:1"></span>'
+        f'<a class="ib" href="#{RETRO_ANCHOR}" aria-label="закрыть">&#8250;</a></div>'
+        f'<div class="body"><div class="title">{html.escape(e.get("title", ""))}</div>'
+        f'<div class="desc">{html.escape(who)}\n\n{html.escape(e.get("agenda") or "")}</div>'
+        f'<div class="src"><b>Источник:</b> {html.escape(e["source"])}</div></div>'
+        f'<div class="foot"><span class="grow">{html.escape(e.get("organizer") or "")}</span>'
+        f'<a class="ib" href="#{RETRO_ANCHOR}" aria-label="закрыть">&#10005;</a></div></aside>'
+    )
+
+
 def retro_block(data: dict) -> tuple[str, str]:
-    """Интерактивная часть слайда ретро: виджеты Activity/Tasks, панели, заметка."""
+    """Интерактивная часть слайда ретро без JS: панели и заметка открываются через :target."""
     validate_retro(data)
+    date = data.get("date", "")
     activity = data.get("activity", [])
     tasks = data.get("tasks", [])
     act_rows = "".join(
-        f'<button class="row" data-event="{i}"><span class="m">{html.escape(e.get("start", ""))}</span>'
+        f'<a class="row" href="#event-{i}"><span class="m">{html.escape(e.get("start", ""))}</span>'
         f'<span class="t">{html.escape(e.get("title", ""))}</span>'
-        f'<span class="m">{html.escape(", ".join(e.get("with", [])[:2]))}{" …" if len(e.get("with", [])) > 2 else ""}</span></button>'
+        f'<span class="m">{html.escape(", ".join(e.get("with", [])[:2]))}{" …" if len(e.get("with", [])) > 2 else ""}</span></a>'
         for i, e in enumerate(activity)
     ) or f'<div class="empty">{NOT_FOUND}</div>'
     task_rows = "".join(
-        f'<button class="row" data-task="{i}"><span class="check" data-done'
+        f'<a class="row" href="#task-{i}"><span class="check" data-done'
         f'{" data-priority=\"" + html.escape(t["priority"]) + "\"" if t.get("priority") else ""}></span>'
         + (f'<span class="id">{html.escape(t["id"])}</span>' if t.get("id") else "")
         + f'<span class="t">{html.escape(t.get("title", ""))}</span>'
-        f'<span class="m">{html.escape(t.get("kr", "") or "")}</span></button>'
+        f'<span class="m">{html.escape(t.get("kr", "") or "")}</span></a>'
         for i, t in enumerate(tasks)
     ) or f'<div class="empty">{NOT_FOUND}</div>'
     widgets = (
+        f'<a class="edge" href="#retro-note">Описать ретро</a>'
         f'<div class="widgets"><div class="widget"><h4><span>Activity</span><span>{len(activity)}</span></h4>{act_rows}</div>'
         f'<div class="widget"><h4><span>Tasks</span><span>{len(tasks)}</span></h4>{task_rows}</div></div>'
     )
-    payload = json.dumps(data, ensure_ascii=False).replace("</", "<\\/")
     chrome = (
-        f'<script type="application/json" id="retro-data">{payload}</script>'
-        '<button class="edge" id="retro-edge" type="button">Описать ретро</button>'
-        '<aside class="sheet right" id="task-sheet" role="dialog"></aside>'
-        '<aside class="sheet left" id="retro-drawer" role="dialog" aria-label="Ретро">'
-        f'<div class="head"><span class="title" style="padding:0;font-size:16px">Ретро {html.escape(data.get("date", ""))}</span><span style="flex:1"></span><button class="ib" data-close>&#10005;</button></div>'
-        f'<textarea spellcheck="false" placeholder="{NOT_FOUND}"></textarea>'
+        "".join(task_sheet(i, t) for i, t in enumerate(tasks))
+        + "".join(event_sheet(i, date, e) for i, e in enumerate(activity))
+        + f'<aside class="sheet left" id="retro-note" role="dialog" aria-label="Ретро" data-date="{html.escape(date)}">'
+        f'<div class="head"><span class="title" style="padding:0;font-size:16px">Ретро {html.escape(date)}</span><span style="flex:1"></span>'
+        f'<a class="ib" href="#{RETRO_ANCHOR}" aria-label="закрыть">&#10005;</a></div>'
+        f'<textarea spellcheck="false" placeholder="{NOT_FOUND}">{html.escape(data.get("note_draft") or "")}</textarea>'
         '<div class="saved"></div></aside>'
     )
     return widgets, chrome
@@ -289,7 +310,7 @@ def render(md: str, retro: dict | None = None) -> str:
         if retro is not None and name.startswith("Ретро"):
             widgets, chrome = retro_block(retro)
             inner = widgets + inner
-            attr = " data-retro"
+            attr = f' id="{RETRO_ANCHOR}" data-retro'
         slides.append(
             f'<section class="slide"{attr}><header><h2>{inline(name)}</h2><span class="n">{n} / {total}</span></header>{inner}</section>'
         )
