@@ -8,9 +8,9 @@
 Если рядом лежит `<имя>.retro.json` (пишет навык), слайд «Ретро» становится
 интерактивным: виджеты Activity (созвоны за вчера) и Tasks (сделанное, с id или без)
 с панелью карточки справа — в ней обязательно «Источник»; вкладка «Описать ретро»
-слева живёт внутри слайда и видна только на нём. Панели и заметка открываются через
-CSS `:target` — работают и там, где скрипты запрещены; JS нужен только стрелкам и
-автосохранению заметки в localStorage.
+слева живёт внутри слайда и видна только на нём. Панели и заметка — скрытые
+radio/checkbox + label: клики не навигируют и не требуют JS, работают в любом
+sandbox-просмотрщике; JS нужен только стрелкам и автосохранению заметки.
 Пустые данные — «Данных не найдено», ничего не додумывается. Строка без `source`
 — код выхода 1.
 
@@ -74,12 +74,17 @@ code{font-family:ui-monospace,Menlo,monospace;font-size:14px;background:var(--so
 .check[data-done]{background:#8b8f96;border-color:#8b8f96}
 .check[data-done]::after{content:"";width:9px;height:5px;margin-top:-2px;border-left:1.5px solid #fff;border-bottom:1.5px solid #fff;transform:rotate(-45deg)}
 .check[data-priority=high]{border-color:#e5484d}.check[data-priority=medium]{border-color:#4c8dff}
-.edge{position:absolute;left:0;top:50%;z-index:40;text-decoration:none;display:block;writing-mode:vertical-rl;transform:translateY(-50%) rotate(180deg);background:#d2302a;color:#fff;border:0;padding:16px 8px;font:600 13px/1 -apple-system,"Segoe UI",Roboto,sans-serif;letter-spacing:.08em;text-transform:uppercase;cursor:pointer}
+.edge{position:absolute;left:0;top:50%;z-index:40;text-decoration:none;display:block;box-sizing:border-box;writing-mode:vertical-rl;transform:translateY(-50%) rotate(180deg);background:#d2302a;color:#fff;border:0;padding:16px 8px;font:600 13px/1 -apple-system,"Segoe UI",Roboto,sans-serif;letter-spacing:.08em;text-transform:uppercase;cursor:pointer}
 .edge:hover{background:#b3261e}
 .sheet .src{margin-top:18px;padding-top:12px;border-top:1px solid #2a2b2f;font-size:13px;color:#8b8f96;word-break:break-all}.sheet .src b{color:#d5d6da;font-weight:600}
 .sheet .saved{padding:6px 18px;font-size:12px;color:#8b8f96}
 .sheet{position:fixed;top:0;bottom:0;width:440px;max-width:96vw;display:none;flex-direction:column;z-index:44;background:#111214;color:#f0f0f2;box-shadow:0 0 24px rgba(0,0,0,.35);font-size:15px}
-.sheet:target,.sheet[data-open]{display:flex}.sheet.right{right:0;border-left:1px solid #2a2b2f}.sheet.left{left:0;border-right:1px solid #2a2b2f}
+.toggle{position:absolute;opacity:0;width:0;height:0;pointer-events:none}
+.toggle:checked~.sheet{display:flex}
+.item{display:contents}
+/* открытая панель не накрывает виджеты: слайд ретро ужимается на её ширину */
+.slide[data-retro]:has(.toggle:checked:not(#sheet-none)){padding-right:calc(64px + 440px)}
+label.row,label.edge,label.ib{cursor:pointer}.sheet.right{right:0;border-left:1px solid #2a2b2f}.sheet.left{left:0;border-right:1px solid #2a2b2f}
 .sheet .head{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid #2a2b2f}
 .sheet .body{flex:1;overflow-y:auto;padding:14px 18px}
 .sheet .title{font-size:20px;font-weight:700;line-height:1.3;padding-bottom:8px}
@@ -102,7 +107,7 @@ document.addEventListener('keydown',e=>{if(e.target.closest&&e.target.closest('t
 if(['ArrowDown','ArrowRight','PageDown',' '].includes(e.key)){e.preventDefault();slides[Math.min(i+1,slides.length-1)].scrollIntoView({behavior:'smooth'})}
 if(['ArrowUp','ArrowLeft','PageUp'].includes(e.key)){e.preventDefault();slides[Math.max(i-1,0)].scrollIntoView({behavior:'smooth'})}
 if(e.key==='Escape'){document.querySelectorAll('.sheet[data-open]').forEach(s=>s.removeAttribute('data-open'))}});
-const drawer=document.getElementById('retro-note');
+const drawer=document.getElementById('retro-note-sheet');
 if(drawer){const key='morning-retro-'+drawer.dataset.date;const ta=drawer.querySelector('textarea');const saved=drawer.querySelector('.saved');
 let stored=null;try{stored=localStorage.getItem(key)}catch(_){}
 if(stored!==null)ta.value=stored;
@@ -192,74 +197,88 @@ def validate_retro(data: dict) -> None:
 
 
 RETRO_ANCHOR = "retro"
+CLOSE = '<label class="ib" for="sheet-none" role="button" aria-label="закрыть">'
 
 
-def task_sheet(i: int, t: dict) -> str:
+def task_sheet(t: dict) -> str:
     pr = t.get("priority") or ""
     return (
-        f'<aside class="sheet right" id="task-{i}" role="dialog"><div class="head">'
+        f'<aside class="sheet right" role="dialog"><div class="head">'
         f'<span class="check" data-done{" data-priority=\"" + html.escape(pr) + "\"" if pr else ""}></span>'
         f'<span class="chip">&#128197; {html.escape(t.get("done_at") or t.get("due") or "")}</span>'
         f'<span class="flag">{"&#9873;" if pr == "high" else ""}</span><span style="flex:1"></span>'
-        f'<a class="ib" href="#{RETRO_ANCHOR}" aria-label="закрыть">&#8250;</a></div>'
+        f'{CLOSE}&#8250;</label></div>'
         f'<div class="body"><div class="title">{html.escape(t.get("title", ""))}</div>'
         f'<div class="desc">{html.escape(t.get("description") or "")}</div>'
         f'<div class="src"><b>Источник:</b> {html.escape(t["source"])}</div></div>'
         f'<div class="foot"><span class="ib">&#9993;</span><span class="ib">&#127991;</span>'
         f'<span class="id">{html.escape(t.get("id") or "без id")}</span>'
         f'<span class="grow">{"&middot; " + html.escape(t["kr_title"]) if t.get("kr_title") else ""}</span>'
-        f'<a class="ib" href="#{RETRO_ANCHOR}" aria-label="закрыть">&#10005;</a></div></aside>'
+        f'{CLOSE}&#10005;</label></div></aside>'
     )
 
 
-def event_sheet(i: int, date: str, e: dict) -> str:
+def event_sheet(date: str, e: dict) -> str:
     span = html.escape(e.get("start", "")) + (f'–{html.escape(e["end"])}' if e.get("end") else "")
     who = ", ".join(e.get("with", []))
     return (
-        f'<aside class="sheet right" id="event-{i}" role="dialog"><div class="head">'
+        f'<aside class="sheet right" role="dialog"><div class="head">'
         f'<span class="chip">&#128197; {html.escape(date)} {span}</span><span style="flex:1"></span>'
-        f'<a class="ib" href="#{RETRO_ANCHOR}" aria-label="закрыть">&#8250;</a></div>'
+        f'{CLOSE}&#8250;</label></div>'
         f'<div class="body"><div class="title">{html.escape(e.get("title", ""))}</div>'
         f'<div class="desc">{html.escape(who)}\n\n{html.escape(e.get("agenda") or "")}</div>'
         f'<div class="src"><b>Источник:</b> {html.escape(e["source"])}</div></div>'
         f'<div class="foot"><span class="grow">{html.escape(e.get("organizer") or "")}</span>'
-        f'<a class="ib" href="#{RETRO_ANCHOR}" aria-label="закрыть">&#10005;</a></div></aside>'
+        f'{CLOSE}&#10005;</label></div></aside>'
+    )
+
+
+def item(input_id: str, row: str, sheet: str) -> str:
+    """Строка виджета + её панель: скрытый radio, label-строка, панель — без JS и без переходов."""
+    return (
+        f'<div class="item"><input class="toggle" type="radio" name="sheet" id="{input_id}">'
+        f'<label class="row" for="{input_id}">{row}</label>{sheet}</div>'
     )
 
 
 def retro_block(data: dict) -> tuple[str, str]:
-    """Интерактивная часть слайда ретро без JS: панели и заметка открываются через :target."""
+    """Интерактивная часть слайда ретро на radio/label: клики не навигируют и не требуют JS."""
     validate_retro(data)
     date = data.get("date", "")
     activity = data.get("activity", [])
     tasks = data.get("tasks", [])
     act_rows = "".join(
-        f'<a class="row" href="#event-{i}"><span class="m">{html.escape(e.get("start", ""))}</span>'
-        f'<span class="t">{html.escape(e.get("title", ""))}</span>'
-        f'<span class="m">{html.escape(", ".join(e.get("with", [])[:2]))}{" …" if len(e.get("with", [])) > 2 else ""}</span></a>'
+        item(
+            f"event-{i}",
+            f'<span class="m">{html.escape(e.get("start", ""))}</span><span class="t">{html.escape(e.get("title", ""))}</span>'
+            f'<span class="m">{html.escape(", ".join(e.get("with", [])[:2]))}{" …" if len(e.get("with", [])) > 2 else ""}</span>',
+            event_sheet(date, e),
+        )
         for i, e in enumerate(activity)
     ) or f'<div class="empty">{NOT_FOUND}</div>'
     task_rows = "".join(
-        f'<a class="row" href="#task-{i}"><span class="check" data-done'
-        f'{" data-priority=\"" + html.escape(t["priority"]) + "\"" if t.get("priority") else ""}></span>'
-        + (f'<span class="id">{html.escape(t["id"])}</span>' if t.get("id") else "")
-        + f'<span class="t">{html.escape(t.get("title", ""))}</span>'
-        f'<span class="m">{html.escape(t.get("kr", "") or "")}</span></a>'
+        item(
+            f"task-{i}",
+            f'<span class="check" data-done{" data-priority=\"" + html.escape(t["priority"]) + "\"" if t.get("priority") else ""}></span>'
+            + (f'<span class="id">{html.escape(t["id"])}</span>' if t.get("id") else "")
+            + f'<span class="t">{html.escape(t.get("title", ""))}</span><span class="m">{html.escape(t.get("kr", "") or "")}</span>',
+            task_sheet(t),
+        )
         for i, t in enumerate(tasks)
     ) or f'<div class="empty">{NOT_FOUND}</div>'
     widgets = (
-        f'<a class="edge" href="#retro-note">Описать ретро</a>'
+        '<input class="toggle" type="radio" name="sheet" id="sheet-none" checked>'
+        '<label class="edge" for="retro-note" role="button">Описать ретро</label>'
         f'<div class="widgets"><div class="widget"><h4><span>Activity</span><span>{len(activity)}</span></h4>{act_rows}</div>'
         f'<div class="widget"><h4><span>Tasks</span><span>{len(tasks)}</span></h4>{task_rows}</div></div>'
     )
     chrome = (
-        "".join(task_sheet(i, t) for i, t in enumerate(tasks))
-        + "".join(event_sheet(i, date, e) for i, e in enumerate(activity))
-        + f'<aside class="sheet left" id="retro-note" role="dialog" aria-label="Ретро" data-date="{html.escape(date)}">'
+        '<div class="item"><input class="toggle" type="checkbox" id="retro-note">'
+        f'<aside class="sheet left" role="dialog" aria-label="Ретро" data-date="{html.escape(date)}" id="retro-note-sheet">'
         f'<div class="head"><span class="title" style="padding:0;font-size:16px">Ретро {html.escape(date)}</span><span style="flex:1"></span>'
-        f'<a class="ib" href="#{RETRO_ANCHOR}" aria-label="закрыть">&#10005;</a></div>'
+        '<label class="ib" for="retro-note" role="button" aria-label="закрыть">&#10005;</label></div>'
         f'<textarea spellcheck="false" placeholder="{NOT_FOUND}">{html.escape(data.get("note_draft") or "")}</textarea>'
-        '<div class="saved"></div></aside>'
+        '<div class="saved"></div></aside></div>'
     )
     return widgets, chrome
 

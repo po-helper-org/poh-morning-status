@@ -8,7 +8,8 @@
 ```sh
 python3 render.py GROUND/PULSE/morning/2026-09-11.md        # → рядом .html
 python3 render.py report.md -o out.html
-python3 -m unittest discover -s test                        # 4 теста
+python3 -m unittest discover -s test                        # 8 юнит-тестов рендера
+node test/e2e.mjs                                           # E2E кликов: Chromium из ../mts-link-sync, JS вкл/выкл, 700px, пустые данные
 ```
 
 Разметка, которую понимает: `# Утро …`, строка `KPI: a N · b M · …`, `## `, `### `,
@@ -27,3 +28,9 @@ python3 -m unittest discover -s test                        # 4 теста
 вкладку «Описать ретро» слева — видна только на этом слайде, выдвигает заметку с
 черновиком ИИ (хранится в localStorage браузера по дате). Пустые данные — «Данных не
 найдено». Строка без `source` — код выхода 1. Пример — `test/sample.retro.json`.
+
+Панели и заметка — скрытые `radio`/`checkbox` + `label` (checkbox-hack): клик ничего не
+навигирует и не требует JavaScript, поэтому работает и в sandbox-просмотрщиках, где
+скрипты и переходы по якорям запрещены. При открытой панели слайд ужимается на её ширину
+(`:has`), чтобы строки виджетов оставались кликабельными. JS — только стрелки и
+автосохранение заметки.
