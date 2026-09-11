@@ -77,13 +77,25 @@ code{font-family:ui-monospace,Menlo,monospace;font-size:14px;background:var(--so
 .edge{position:absolute;left:0;top:50%;z-index:40;text-decoration:none;display:block;box-sizing:border-box;writing-mode:vertical-rl;transform:translateY(-50%) rotate(180deg);background:#d2302a;color:#fff;border:0;padding:16px 8px;font:600 13px/1 -apple-system,"Segoe UI",Roboto,sans-serif;letter-spacing:.08em;text-transform:uppercase;cursor:pointer}
 .edge:hover{background:#b3261e}
 .sheet .src{margin-top:18px;padding-top:12px;border-top:1px solid #2a2b2f;font-size:13px;color:#8b8f96;word-break:break-all}.sheet .src b{color:#d5d6da;font-weight:600}
-.sheet .saved{padding:6px 18px;font-size:12px;color:#8b8f96}
+.sheet .saved{font-size:12px;color:#8b8f96;margin-left:auto}
+/* заметка: рендер markdown + textarea, переключение label «Править» без JS */
+.sheet .btn{display:inline-flex;align-items:center;border:1px solid #2a2b2f;border-radius:6px;padding:4px 10px;font-size:13px;color:#d5d6da;cursor:pointer}
+.sheet .btn:hover{background:#1e1f23}
+.note-edit{display:none}.edit-toggle:checked~.body .note-view{display:none}.edit-toggle:checked~.body .note-edit{display:block}
+.sheet .edit-toggle:checked~.head .lbl-edit{display:none}.sheet .lbl-done{display:none}.sheet .edit-toggle:checked~.head .lbl-done{display:inline-flex}
+.note-edit textarea{width:100%;min-height:60vh;box-sizing:border-box;resize:vertical;border:1px solid #2a2b2f;border-radius:6px;background:#0b0c0e;color:#f0f0f2;font:14px/1.55 ui-monospace,Menlo,monospace;padding:10px 12px;outline:0}
+.md{font-size:15px;line-height:1.55;color:#e6e7ea}.md h1{font-size:20px;margin:14px 0 6px}.md h2{font-size:17px;margin:14px 0 6px}.md h3{font-size:15px;margin:12px 0 4px;color:#b9bcc3}
+.md p{margin:6px 0}.md ul,.md ol{margin:4px 0 8px;padding-left:22px}.md li{margin:3px 0}.md ul.todo{list-style:none;padding-left:0}
+.md li.todo{display:flex;align-items:flex-start;gap:8px}.md li.todo input{margin:5px 0 0;accent-color:#4c8dff}.md li.todo:has(input:checked) span{color:#8b8f96;text-decoration:line-through}
+.md code{background:#1e1f23;padding:1px 4px;border-radius:3px;font-size:13px}.md blockquote{margin:6px 0;padding-left:10px;border-left:2px solid #3a3b40;color:#b9bcc3}
+.md .empty{color:#8b8f96}
 .sheet{position:fixed;top:0;bottom:0;width:440px;max-width:96vw;display:none;flex-direction:column;z-index:44;background:#111214;color:#f0f0f2;box-shadow:0 0 24px rgba(0,0,0,.35);font-size:15px}
 .toggle{position:absolute;opacity:0;width:0;height:0;pointer-events:none}
 .toggle:checked~.sheet{display:flex}
 .item{display:contents}
 /* открытая панель не накрывает виджеты: слайд ретро ужимается на её ширину */
 .slide[data-retro]:has(.toggle:checked:not(#sheet-none)){padding-right:calc(64px + 440px)}
+body:has(#retro-note:checked) .slide[data-retro]{padding-left:calc(64px + 440px)}
 label.row,label.edge,label.ib{cursor:pointer}.sheet.right{right:0;border-left:1px solid #2a2b2f}.sheet.left{left:0;border-right:1px solid #2a2b2f}
 .sheet .head{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid #2a2b2f}
 .sheet .body{flex:1;overflow-y:auto;padding:14px 18px}
@@ -96,22 +108,36 @@ label.row,label.edge,label.ib{cursor:pointer}.sheet.right{right:0;border-left:1p
 .sheet .ib{width:28px;height:28px;border:0;border-radius:6px;background:transparent;color:#8b8f96;cursor:pointer;font-size:16px;display:inline-flex;align-items:center;justify-content:center}
 .sheet .ib:hover{background:#1e1f23;color:#f0f0f2}
 .sheet .flag{color:#e5484d}
-.sheet textarea{flex:1;width:100%;box-sizing:border-box;resize:none;border:0;outline:0;background:transparent;color:#f0f0f2;font:15px/1.55 -apple-system,"Segoe UI",Roboto,sans-serif;padding:14px 18px}
 @media(max-width:800px){.widgets{grid-template-columns:1fr}.slide{padding:28px 20px}.kpis{grid-template-columns:repeat(2,1fr)}h1{font-size:32px}}
 @media print{.deck{overflow:visible}.slide{page-break-after:always;min-height:auto;border:0}}
 """
 
-JS = """
+JS = r"""
 const deck=document.querySelector('.deck');const slides=[...document.querySelectorAll('.slide')];
 document.addEventListener('keydown',e=>{if(e.target.closest&&e.target.closest('textarea,input,[contenteditable]'))return;const i=Math.round(deck.scrollTop/window.innerHeight);
 if(['ArrowDown','ArrowRight','PageDown',' '].includes(e.key)){e.preventDefault();slides[Math.min(i+1,slides.length-1)].scrollIntoView({behavior:'smooth'})}
 if(['ArrowUp','ArrowLeft','PageUp'].includes(e.key)){e.preventDefault();slides[Math.max(i-1,0)].scrollIntoView({behavior:'smooth'})}
 if(e.key==='Escape'){document.querySelectorAll('.sheet[data-open]').forEach(s=>s.removeAttribute('data-open'))}});
-const drawer=document.getElementById('retro-note-sheet');
-if(drawer){const key='morning-retro-'+drawer.dataset.date;const ta=drawer.querySelector('textarea');const saved=drawer.querySelector('.saved');
+const esc=t=>t.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+const inl=t=>esc(t).replace(/`([^`]+)`/g,'<code>$1</code>').replace(/\*\*([^*]+)\*\*/g,'<b>$1</b>').replace(/\b(PO-\d+|GDSLV-\d+)\b/g,'<span class="id">$1</span>');
+function md(src){const out=[];let list=null;const close=()=>{if(list){out.push(`</${list}>`);list=null}};
+for(const raw of src.split('\n')){const l=raw.trimEnd();let m;
+if((m=/^(#{1,3})\s+(.*)$/.exec(l))){close();out.push(`<h${m[1].length}>${inl(m[2])}</h${m[1].length}>`)}
+else if((m=/^\s*[-*]\s+\[([ xX])\]\s+(.*)$/.exec(l))){if(list!=='ul class="todo"'){close();out.push('<ul class="todo">');list='ul class="todo"'}out.push(`<li class="todo"><input type="checkbox"${m[1]===' '?'':' checked'}><span>${inl(m[2])}</span></li>`)}
+else if((m=/^\s*[-*]\s+(.*)$/.exec(l))){if(list!=='ul'){close();out.push('<ul>');list='ul'}out.push(`<li>${inl(m[1])}</li>`)}
+else if((m=/^\s*\d+[.)]\s+(.*)$/.exec(l))){if(list!=='ol'){close();out.push('<ol>');list='ol'}out.push(`<li>${inl(m[1])}</li>`)}
+else if((m=/^>\s?(.*)$/.exec(l))){close();out.push(`<blockquote>${inl(m[1])}</blockquote>`)}
+else if(l.trim()===''){close()}
+else{close();out.push(`<p>${inl(l)}</p>`)}}
+close();return out.join('')||'<p class="empty">Данных не найдено</p>'}
+document.querySelectorAll('.note').forEach(note=>{const key='morning-note-'+note.dataset.key;const ta=note.querySelector('textarea');const view=note.querySelector('.note-view');const saved=note.querySelector('.saved');
 let stored=null;try{stored=localStorage.getItem(key)}catch(_){}
-if(stored!==null)ta.value=stored;
-ta.addEventListener('input',()=>{try{localStorage.setItem(key,ta.value);saved.textContent='сохранено в браузере '+new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'})}catch(_){saved.textContent='localStorage недоступен'}});}
+if(stored!==null){ta.value=stored;view.innerHTML=md(stored)}
+const persist=()=>{try{localStorage.setItem(key,ta.value);saved.textContent='сохранено '+new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'})}catch(_){saved.textContent='localStorage недоступен'}};
+ta.addEventListener('input',()=>{view.innerHTML=md(ta.value);persist()});
+view.addEventListener('change',e=>{if(e.target.type!=='checkbox')return;const boxes=[...view.querySelectorAll('input[type=checkbox]')];const idx=boxes.indexOf(e.target);let n=-1;
+ta.value=ta.value.split('\n').map(line=>{const m=/^(\s*[-*]\s+)\[([ xX])\](\s+.*)$/.exec(line);if(!m)return line;n++;return n===idx?`${m[1]}[${e.target.checked?'x':' '}]${m[3]}`:line}).join('\n');
+view.innerHTML=md(ta.value);persist()});});
 """
 
 
@@ -198,38 +224,68 @@ def validate_retro(data: dict) -> None:
 
 RETRO_ANCHOR = "retro"
 CLOSE = '<label class="ib" for="sheet-none" role="button" aria-label="закрыть">'
+RETRO_TEMPLATE = (
+    "## Что было сделано\n\n## Как это влияет на цели спринта\n\n"
+    "## Как это влияет на цели квартала\n\n## Что не получилось сделать\n"
+)
+
+H_RE = re.compile(r"^(#{1,3})\s+(.*)$")
+TODO_RE = re.compile(r"^\s*[-*]\s+\[([ xX])\]\s+(.*)$")
+UL_RE = re.compile(r"^\s*[-*]\s+(.*)$")
+OL_RE = re.compile(r"^\s*\d+[.)]\s+(.*)$")
+Q_RE = re.compile(r"^>\s?(.*)$")
 
 
-def task_sheet(t: dict) -> str:
-    pr = t.get("priority") or ""
+def md_to_html(src: str) -> str:
+    """Markdown заметки → HTML: заголовки, списки, чеклисты, цитаты, **жирный**, `код`.
+    Зеркало функции md() в JS: без скриптов заметка читается так же."""
+    out: list[str] = []
+    state: str | None = None
+
+    def close() -> None:
+        nonlocal state
+        if state:
+            out.append(f"</{state.split(' ')[0]}>")
+            state = None
+
+    for raw in src.splitlines():
+        line = raw.rstrip()
+        if (m := H_RE.match(line)):
+            close(); out.append(f"<h{len(m[1])}>{inline(m[2])}</h{len(m[1])}>")
+        elif (m := TODO_RE.match(line)):
+            if state != 'ul class="todo"':
+                close(); out.append('<ul class="todo">'); state = 'ul class="todo"'
+            out.append(f'<li class="todo"><input type="checkbox"{"" if m[1] == " " else " checked"}><span>{inline(m[2])}</span></li>')
+        elif (m := UL_RE.match(line)):
+            if state != "ul":
+                close(); out.append("<ul>"); state = "ul"
+            out.append(f"<li>{inline(m[1])}</li>")
+        elif (m := OL_RE.match(line)):
+            if state != "ol":
+                close(); out.append("<ol>"); state = "ol"
+            out.append(f"<li>{inline(m[1])}</li>")
+        elif (m := Q_RE.match(line)):
+            close(); out.append(f"<blockquote>{inline(m[1])}</blockquote>")
+        elif line.strip() == "":
+            close()
+        else:
+            close(); out.append(f"<p>{inline(line)}</p>")
+    close()
+    return "".join(out) or f'<p class="empty">{NOT_FOUND}</p>'
+
+
+def note_panel(key: str, side: str, title: str, text: str, foot: str, close_for: str) -> str:
+    """Панель-заметка: заголовок, markdown-рендер, textarea за label «Править», подвал с источником."""
     return (
-        f'<aside class="sheet right" role="dialog"><div class="head">'
-        f'<span class="check" data-done{" data-priority=\"" + html.escape(pr) + "\"" if pr else ""}></span>'
-        f'<span class="chip">&#128197; {html.escape(t.get("done_at") or t.get("due") or "")}</span>'
-        f'<span class="flag">{"&#9873;" if pr == "high" else ""}</span><span style="flex:1"></span>'
-        f'{CLOSE}&#8250;</label></div>'
-        f'<div class="body"><div class="title">{html.escape(t.get("title", ""))}</div>'
-        f'<div class="desc">{html.escape(t.get("description") or "")}</div>'
-        f'<div class="src"><b>Источник:</b> {html.escape(t["source"])}</div></div>'
-        f'<div class="foot"><span class="ib">&#9993;</span><span class="ib">&#127991;</span>'
-        f'<span class="id">{html.escape(t.get("id") or "без id")}</span>'
-        f'<span class="grow">{"&middot; " + html.escape(t["kr_title"]) if t.get("kr_title") else ""}</span>'
-        f'{CLOSE}&#10005;</label></div></aside>'
-    )
-
-
-def event_sheet(date: str, e: dict) -> str:
-    span = html.escape(e.get("start", "")) + (f'–{html.escape(e["end"])}' if e.get("end") else "")
-    who = ", ".join(e.get("with", []))
-    return (
-        f'<aside class="sheet right" role="dialog"><div class="head">'
-        f'<span class="chip">&#128197; {html.escape(date)} {span}</span><span style="flex:1"></span>'
-        f'{CLOSE}&#8250;</label></div>'
-        f'<div class="body"><div class="title">{html.escape(e.get("title", ""))}</div>'
-        f'<div class="desc">{html.escape(who)}\n\n{html.escape(e.get("agenda") or "")}</div>'
-        f'<div class="src"><b>Источник:</b> {html.escape(e["source"])}</div></div>'
-        f'<div class="foot"><span class="grow">{html.escape(e.get("organizer") or "")}</span>'
-        f'{CLOSE}&#10005;</label></div></aside>'
+        f'<aside class="sheet {side} note" role="dialog" data-key="{html.escape(key)}">'
+        f'<input class="toggle edit-toggle" type="checkbox" id="edit-{html.escape(key)}">'
+        f'<div class="head"><span class="title" style="padding:0;font-size:17px">{html.escape(title)}</span><span style="flex:1"></span>'
+        f'<label class="btn lbl-edit" for="edit-{html.escape(key)}">Править</label>'
+        f'<label class="btn lbl-done" for="edit-{html.escape(key)}">Готово</label>'
+        f'<label class="ib" for="{close_for}" role="button" aria-label="закрыть">&#10005;</label></div>'
+        f'<div class="body"><div class="note-view md">{md_to_html(text)}</div>'
+        f'<div class="note-edit"><textarea spellcheck="false" placeholder="{NOT_FOUND}">{html.escape(text)}</textarea></div></div>'
+        f'<div class="foot">{foot}<span class="saved"></span></div></aside>'
     )
 
 
@@ -242,7 +298,7 @@ def item(input_id: str, row: str, sheet: str) -> str:
 
 
 def retro_block(data: dict) -> tuple[str, str]:
-    """Интерактивная часть слайда ретро на radio/label: клики не навигируют и не требуют JS."""
+    """Слайд ретро: виджеты Activity/Tasks, каждая строка открывает заметку; вкладка — заметка ретро."""
     validate_retro(data)
     date = data.get("date", "")
     activity = data.get("activity", [])
@@ -252,17 +308,24 @@ def retro_block(data: dict) -> tuple[str, str]:
             f"event-{i}",
             f'<span class="m">{html.escape(e.get("start", ""))}</span><span class="t">{html.escape(e.get("title", ""))}</span>'
             f'<span class="m">{html.escape(", ".join(e.get("with", [])[:2]))}{" …" if len(e.get("with", [])) > 2 else ""}</span>',
-            event_sheet(date, e),
+            note_panel(
+                f"{date}-event-{i}", "right", e.get("title", ""), e.get("summary") or "",
+                f'<span class="grow"><b>Источник:</b> {html.escape(e["source"])}</span>', "sheet-none",
+            ),
         )
         for i, e in enumerate(activity)
     ) or f'<div class="empty">{NOT_FOUND}</div>'
     task_rows = "".join(
         item(
             f"task-{i}",
-            f'<span class="check" data-done{" data-priority=\"" + html.escape(t["priority"]) + "\"" if t.get("priority") else ""}></span>'
+            f'<span class="check" data-done></span>'
             + (f'<span class="id">{html.escape(t["id"])}</span>' if t.get("id") else "")
             + f'<span class="t">{html.escape(t.get("title", ""))}</span><span class="m">{html.escape(t.get("kr", "") or "")}</span>',
-            task_sheet(t),
+            note_panel(
+                f"{date}-task-{i}", "right", t.get("title", ""), t.get("note") or "",
+                (f'<span class="id">{html.escape(t["id"])}</span>' if t.get("id") else "")
+                + f'<span class="grow"><b>Источник:</b> {html.escape(t["source"])}</span>', "sheet-none",
+            ),
         )
         for i, t in enumerate(tasks)
     ) or f'<div class="empty">{NOT_FOUND}</div>'
@@ -274,11 +337,9 @@ def retro_block(data: dict) -> tuple[str, str]:
     )
     chrome = (
         '<div class="item"><input class="toggle" type="checkbox" id="retro-note">'
-        f'<aside class="sheet left" role="dialog" aria-label="Ретро" data-date="{html.escape(date)}" id="retro-note-sheet">'
-        f'<div class="head"><span class="title" style="padding:0;font-size:16px">Ретро {html.escape(date)}</span><span style="flex:1"></span>'
-        '<label class="ib" for="retro-note" role="button" aria-label="закрыть">&#10005;</label></div>'
-        f'<textarea spellcheck="false" placeholder="{NOT_FOUND}">{html.escape(data.get("note_draft") or "")}</textarea>'
-        '<div class="saved"></div></aside></div>'
+        + note_panel(f"{date}-retro", "left", f"Ретро {date}", data.get("note_draft") or RETRO_TEMPLATE, "", "retro-note")
+        .replace('class="sheet left note"', 'class="sheet left note" id="retro-note-sheet"')
+        + "</div>"
     )
     return widgets, chrome
 
@@ -328,7 +389,7 @@ def render(md: str, retro: dict | None = None) -> str:
         attr = ""
         if retro is not None and name.startswith("Ретро"):
             widgets, chrome = retro_block(retro)
-            inner = widgets + inner
+            inner = widgets   # таблица из markdown не нужна: ретро живёт в заметках Tasks
             attr = f' id="{RETRO_ANCHOR}" data-retro'
         slides.append(
             f'<section class="slide"{attr}><header><h2>{inline(name)}</h2><span class="n">{n} / {total}</span></header>{inner}</section>'
