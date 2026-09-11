@@ -184,25 +184,35 @@ sources: [backlog.md, calendar|none, GROUND/RESULTS/<sprint-report>|none]
 ```
 
 2. Записать данные слайда ретро в `GROUND/PULSE/morning/{today}.retro.json` —
-   из них рендерер собирает виджеты Activity/Tasks, панель карточки и черновик
-   заметки «Описать ретро»:
+   из них рендерер собирает виджеты Activity/Tasks, панель карточки и заметку
+   «Описать ретро»:
 
 ```json
 {
   "date": "{yesterday}",
-  "summary": "2–3 предложения «что сделано» — только результаты с id, стиль caveman + antislop",
-  "note_draft": "# Ретро {yesterday}\n\n## Что было\n…\n\n## Хронология\n- 11:00 … (PO-…)\n\n## Результаты\n- PO-… закрыта\n",
-  "activity": [{"start": "11:00", "end": "11:30", "title": "…", "with": ["…"], "organizer": "…", "agenda": "…"}],
+  "note_draft": "## Хронология\n- 11:00 … (PO-…)\n\n## Результаты\n- PO-… закрыта\n",
+  "activity": [{"start": "11:00", "end": "11:30", "title": "…", "with": ["…"], "organizer": "…",
+                "agenda": "…", "source": "календарь MTS Exchange, событие {yesterday} 11:00 (tools/calendar-today)"}],
   "tasks": [{"id": "PO-105", "title": "…", "description": "…", "kr": "PO-78", "kr_title": "…",
-             "kind": "task", "priority": "high", "due": "2026-09-11", "done_at": "{yesterday}"}]
+             "priority": "high", "due": "2026-09-11", "done_at": "{yesterday}",
+             "source": "Backlog.md: backlog/tasks/po-105, status Done, updatedAt {yesterday}"},
+            {"title": "Заведены 5 инициатив: …", "description": "PO-128…PO-132", "done_at": "{yesterday}",
+             "source": "Backlog.md: backlog task list --json, createdAt {yesterday} (PO-128…PO-132)"}]
 }
 ```
 
-   `activity` — события `today.py --date $yesterday --json` как есть (код 1 → `[]`);
-   `tasks` — закрытые вчера (`Done`/`Cancelled`, `updatedAt` = вчера), описание из
-   `backlog task <id> --json`; `kr_title` — заголовок KR по `okr-kr`. Нет закрытых — `[]`,
-   виджет покажет «закрытых задач нет». `note_draft` — хронология по времени событий и
-   `updatedAt` задач; чего нет в данных, в хронологии нет.
+   Правила:
+   - **`source` обязателен** у каждой строки `tasks` и `activity` — откуда сведения:
+     путь к файлу задачи и поле, команда и поле `--json`, событие календаря, заметка
+     PULSE. Без `source` рендерер отказывает (код 1). Панель карточки показывает его.
+   - **Всё сделанное за вчера — строки `tasks`.** С `id`, если это задача Backlog.md
+     (`Done`/`Cancelled`, `updatedAt` = вчера); без `id`, если результат — абстракция
+     для отчёта («Заведены 5 инициатив», «Фикс вебхука»), но с `source` на реальные
+     записи. Сводки-прозы нет.
+   - `activity` — события `today.py --date $yesterday --json` как есть; код 1 → `[]`.
+   - `note_draft` — хронология по времени событий и `updatedAt` задач + результаты.
+     Только то, что есть в `tasks`/`activity`; нет данных → пустая строка, виджеты
+     покажут «Данных не найдено». Ничего не додумывать.
 
 3. Отрисовать слайды — детерминированно, из markdown и json, без правок руками:
 
@@ -211,9 +221,9 @@ python3 <poh-morning-status>/tools/morning-slides/render.py GROUND/PULSE/morning
 ```
 
 Пишет `GROUND/PULSE/morning/{today}.html` (один файл, без внешних библиотек).
-Код выхода 1 — markdown не по шаблону; починить отчёт, не рендерер. Заметка «Описать
-ретро» правится в браузере и хранится в его localStorage; в волт она попадает кнопкой
-«Скачать .md» — руками PO, навык её не читает.
+Код выхода 1 — markdown или retro.json не по шаблону; починить отчёт, не рендерер.
+Заметка «Описать ретро» правится в браузере и хранится в его localStorage; навык её
+не читает.
 
 4. Ответить в чат самим отчётом (markdown как есть) и одной строкой путями к `.md`
 и `.html`. Остановиться.

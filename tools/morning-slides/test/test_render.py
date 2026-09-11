@@ -40,8 +40,18 @@ class RetroTest(unittest.TestCase):
         self.assertEqual(out.count('data-task="'), 2)
         self.assertEqual(out.count('data-event="'), 2)
         self.assertIn('id="retro-edge"', out)
-        self.assertIn('class="retro-summary"', out)
-        self.assertIn('<span class="id">PO-105</span>', out)   # ссылка в сводке подсвечена
+        self.assertIn(' data-retro>', out)
+        self.assertNotIn('retro-summary', out)
+        self.assertNotIn('data-download', out)
+        self.assertIn('data-task="0"><span class="check" data-done data-priority="high"></span><span class="id">PO-105</span>', out)
+        self.assertIn('data-task="1"><span class="check" data-done></span><span class="t">', out)   # без id — только заголовок
+    def test_source_required(self):
+        bad = {"date": "2026-09-10", "tasks": [{"title": "Фикс вебхука"}], "activity": []}
+        with self.assertRaises(ValueError):
+            render(SAMPLE, bad)
+    def test_empty_data_not_invented(self):
+        out = render(SAMPLE, {"date": "2026-09-10", "tasks": [], "activity": []})
+        self.assertEqual(out.count('Данных не найдено'), 3)   # два виджета + placeholder заметки
     def test_no_json_no_widgets(self):
         out = render(SAMPLE, None)
         self.assertNotIn('id="retro-data"', out)

@@ -6,9 +6,11 @@
   render.py report.md --stdout
 
 Если рядом лежит `<имя>.retro.json` (пишет навык), слайд «Ретро» становится
-интерактивным: сводка ИИ, виджеты Activity (созвоны за вчера) и Tasks (закрытые
-задачи) с панелью карточки справа, кнопка «Описать ретро» слева с заметкой
-(черновик ИИ, правится, хранится в localStorage браузера, скачивается .md).
+интерактивным: виджеты Activity (созвоны за вчера) и Tasks (сделанное, с id или без)
+с панелью карточки справа — в ней обязательно «Источник»; вкладка «Описать ретро»
+слева видна только на этом слайде, заметка хранится в localStorage браузера.
+Пустые данные — «Данных не найдено», ничего не додумывается. Строка без `source`
+— код выхода 1.
 
 Формат входа — шаблон навыка `morning` (skills/morning/SKILL.md):
   # Утро {дата}            → титул
@@ -58,7 +60,6 @@ ul{margin:0 0 12px;padding-left:20px}li{margin:4px 0}
 .foot{margin-top:auto;padding-top:24px;color:var(--muted);font-size:14px}
 code{font-family:ui-monospace,Menlo,monospace;font-size:14px;background:var(--soft);padding:1px 4px;border-radius:3px}
 /* ретро: виджеты и панели по мотивам TaskSheet poh-okr-plugin */
-.retro-summary{font-size:18px;line-height:1.5;max-width:70ch;margin:0 0 20px}
 .widgets{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:22px}
 .widget{border:1px solid var(--line);border-radius:10px;overflow:hidden}
 .widget>h4{margin:0;padding:10px 14px;font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);background:var(--soft);display:flex;justify-content:space-between}
@@ -71,8 +72,10 @@ code{font-family:ui-monospace,Menlo,monospace;font-size:14px;background:var(--so
 .check[data-done]{background:#8b8f96;border-color:#8b8f96}
 .check[data-done]::after{content:"";width:9px;height:5px;margin-top:-2px;border-left:1.5px solid #fff;border-bottom:1.5px solid #fff;transform:rotate(-45deg)}
 .check[data-priority=high]{border-color:#e5484d}.check[data-priority=medium]{border-color:#4c8dff}
-.edge{position:fixed;left:0;top:50%;z-index:40;writing-mode:vertical-rl;transform:translateY(-50%) rotate(180deg);background:#d2302a;color:#fff;border:0;padding:16px 8px;font:600 13px/1 -apple-system,"Segoe UI",Roboto,sans-serif;letter-spacing:.08em;text-transform:uppercase;cursor:pointer}
-.edge:hover{background:#b3261e}
+.edge{display:none;position:fixed;left:0;top:50%;z-index:40;writing-mode:vertical-rl;transform:translateY(-50%) rotate(180deg);background:#d2302a;color:#fff;border:0;padding:16px 8px;font:600 13px/1 -apple-system,"Segoe UI",Roboto,sans-serif;letter-spacing:.08em;text-transform:uppercase;cursor:pointer}
+.edge[data-visible]{display:block}.edge:hover{background:#b3261e}
+.sheet .src{margin-top:18px;padding-top:12px;border-top:1px solid #2a2b2f;font-size:13px;color:#8b8f96;word-break:break-all}.sheet .src b{color:#d5d6da;font-weight:600}
+.sheet .saved{padding:6px 18px;font-size:12px;color:#8b8f96}
 .sheet{position:fixed;top:0;bottom:0;width:440px;max-width:96vw;display:none;flex-direction:column;z-index:44;background:#111214;color:#f0f0f2;box-shadow:0 0 24px rgba(0,0,0,.35);font-size:15px}
 .sheet[data-open]{display:flex}.sheet.right{right:0;border-left:1px solid #2a2b2f}.sheet.left{left:0;border-right:1px solid #2a2b2f}
 .sheet .head{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid #2a2b2f}
@@ -86,10 +89,6 @@ code{font-family:ui-monospace,Menlo,monospace;font-size:14px;background:var(--so
 .sheet .ib:hover{background:#1e1f23;color:#f0f0f2}
 .sheet .flag{color:#e5484d}
 .sheet textarea{flex:1;width:100%;box-sizing:border-box;resize:none;border:0;outline:0;background:transparent;color:#f0f0f2;font:15px/1.55 -apple-system,"Segoe UI",Roboto,sans-serif;padding:14px 18px}
-.sheet .tools{display:flex;gap:6px;padding:10px 14px;border-top:1px solid #2a2b2f}
-.sheet .tools button{border:1px solid #2a2b2f;background:transparent;color:#d5d6da;border-radius:6px;padding:5px 10px;font-size:13px;cursor:pointer}
-.sheet .tools button:hover{background:#1e1f23}
-.sheet .saved{margin-left:auto;font-size:12px;color:#8b8f96;align-self:center}
 @media(max-width:800px){.widgets{grid-template-columns:1fr}.slide{padding:28px 20px}.kpis{grid-template-columns:repeat(2,1fr)}h1{font-size:32px}}
 @media print{.deck{overflow:visible}.slide{page-break-after:always;min-height:auto;border:0}}
 """
@@ -107,23 +106,23 @@ const openSheet=h=>{sheet.innerHTML=h;sheet.setAttribute('data-open','');};
 const closeAll=()=>{sheet.removeAttribute('data-open')};
 document.querySelectorAll('[data-task]').forEach(b=>b.addEventListener('click',()=>{const t=R.tasks[+b.dataset.task];
 openSheet(`<div class="head"><span class="check" data-done ${t.priority?'data-priority="'+esc(t.priority)+'"':''}></span><span class="chip">&#128197; ${esc(t.done_at||t.due||'')}</span><span class="flag">${t.priority==='high'?'&#9873;':''}</span><span style="flex:1"></span><button class="ib" data-close>&#8250;</button></div>
-<div class="body"><div class="title">${esc(t.title)}</div><div class="desc">${esc(t.description||'')}</div></div>
-<div class="foot"><span class="ib">&#9993;</span><span class="ib">&#127991;</span><span class="id">${esc(t.id)}</span><span class="grow">${t.kr_title?'&middot; '+esc(t.kr_title):''}</span><button class="ib" data-close>&#10005;</button></div>`);}));
+<div class="body"><div class="title">${esc(t.title)}</div><div class="desc">${esc(t.description||'')}</div><div class="src"><b>Источник:</b> ${esc(t.source)}</div></div>
+<div class="foot"><span class="ib">&#9993;</span><span class="ib">&#127991;</span><span class="id">${esc(t.id||'без id')}</span><span class="grow">${t.kr_title?'&middot; '+esc(t.kr_title):''}</span><button class="ib" data-close>&#10005;</button></div>`);}));
 document.querySelectorAll('[data-event]').forEach(b=>b.addEventListener('click',()=>{const ev=R.activity[+b.dataset.event];
 openSheet(`<div class="head"><span class="chip">&#128197; ${esc(R.date)} ${esc(ev.start)}${ev.end?'–'+esc(ev.end):''}</span><span style="flex:1"></span><button class="ib" data-close>&#8250;</button></div>
-<div class="body"><div class="title">${esc(ev.title)}</div><div class="desc">${esc((ev.with||[]).join(', '))}\n\n${esc(ev.agenda||'')}</div></div>
+<div class="body"><div class="title">${esc(ev.title)}</div><div class="desc">${esc((ev.with||[]).join(', '))}\n\n${esc(ev.agenda||'')}</div><div class="src"><b>Источник:</b> ${esc(ev.source)}</div></div>
 <div class="foot"><span class="grow">${esc(ev.organizer||'')}</span><button class="ib" data-close>&#10005;</button></div>`);}));
 sheet.addEventListener('click',e=>{if(e.target.closest('[data-close]'))closeAll()});
 const key='morning-retro-'+R.date;const ta=drawer.querySelector('textarea');const saved=drawer.querySelector('.saved');
 let stored=null;try{stored=localStorage.getItem(key)}catch(_){}
 ta.value=stored??R.note_draft??'';
-const persist=()=>{try{localStorage.setItem(key,ta.value);saved.textContent='сохранено локально '+new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'})}catch(_){saved.textContent='localStorage недоступен'}};
+const persist=()=>{try{localStorage.setItem(key,ta.value);saved.textContent='сохранено в браузере '+new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'})}catch(_){saved.textContent='localStorage недоступен'}};
 ta.addEventListener('input',persist);
-document.getElementById('retro-edge').addEventListener('click',()=>{drawer.toggleAttribute('data-open');if(drawer.hasAttribute('data-open'))ta.focus()});
+const edge=document.getElementById('retro-edge');
+edge.addEventListener('click',()=>{drawer.toggleAttribute('data-open');if(drawer.hasAttribute('data-open'))ta.focus()});
 drawer.querySelector('[data-close]').addEventListener('click',()=>drawer.removeAttribute('data-open'));
-drawer.querySelector('[data-reset]').addEventListener('click',()=>{ta.value=R.note_draft??'';persist()});
-drawer.querySelector('[data-clear]').addEventListener('click',()=>{ta.value='';persist()});
-drawer.querySelector('[data-download]').addEventListener('click',()=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([ta.value],{type:'text/markdown'}));a.download='retro-'+R.date+'.md';a.click()});}
+const retroSlide=document.querySelector('.slide[data-retro]');
+new IntersectionObserver(es=>{es.forEach(en=>{if(en.isIntersecting)edge.setAttribute('data-visible','');else{edge.removeAttribute('data-visible');drawer.removeAttribute('data-open');closeAll()}})},{threshold:.5}).observe(retroSlide);}
 """
 
 
@@ -195,9 +194,22 @@ def render_body(lines: list[str]) -> str:
     return "\n".join(out)
 
 
+NOT_FOUND = "Данных не найдено"
+
+
+def validate_retro(data: dict) -> None:
+    """Каждая строка Tasks/Activity обязана нести `source`: панель показывает его всегда."""
+    for kind in ("tasks", "activity"):
+        for i, item in enumerate(data.get(kind, [])):
+            if not str(item.get("source", "")).strip():
+                raise ValueError(f"retro.json: {kind}[{i}] без поля source — откуда сведения?")
+            if not str(item.get("title", "")).strip():
+                raise ValueError(f"retro.json: {kind}[{i}] без title")
+
+
 def retro_block(data: dict) -> tuple[str, str]:
-    """Интерактивная часть слайда ретро: текст ИИ, виджеты Activity/Tasks, панели."""
-    summary = data.get("summary", "").strip()
+    """Интерактивная часть слайда ретро: виджеты Activity/Tasks, панели, заметка."""
+    validate_retro(data)
     activity = data.get("activity", [])
     tasks = data.get("tasks", [])
     act_rows = "".join(
@@ -205,16 +217,16 @@ def retro_block(data: dict) -> tuple[str, str]:
         f'<span class="t">{html.escape(e.get("title", ""))}</span>'
         f'<span class="m">{html.escape(", ".join(e.get("with", [])[:2]))}{" …" if len(e.get("with", [])) > 2 else ""}</span></button>'
         for i, e in enumerate(activity)
-    ) or '<div class="empty">событий нет</div>'
+    ) or f'<div class="empty">{NOT_FOUND}</div>'
     task_rows = "".join(
         f'<button class="row" data-task="{i}"><span class="check" data-done'
         f'{" data-priority=\"" + html.escape(t["priority"]) + "\"" if t.get("priority") else ""}></span>'
-        f'<span class="id">{html.escape(t.get("id", ""))}</span><span class="t">{html.escape(t.get("title", ""))}</span>'
+        + (f'<span class="id">{html.escape(t["id"])}</span>' if t.get("id") else "")
+        + f'<span class="t">{html.escape(t.get("title", ""))}</span>'
         f'<span class="m">{html.escape(t.get("kr", "") or "")}</span></button>'
         for i, t in enumerate(tasks)
-    ) or '<div class="empty">закрытых задач нет</div>'
+    ) or f'<div class="empty">{NOT_FOUND}</div>'
     widgets = (
-        f'<p class="retro-summary">{inline(summary) if summary else "[НЕТ ДАННЫХ: сводка не написана]"}</p>'
         f'<div class="widgets"><div class="widget"><h4><span>Activity</span><span>{len(activity)}</span></h4>{act_rows}</div>'
         f'<div class="widget"><h4><span>Tasks</span><span>{len(tasks)}</span></h4>{task_rows}</div></div>'
     )
@@ -225,9 +237,8 @@ def retro_block(data: dict) -> tuple[str, str]:
         '<aside class="sheet right" id="task-sheet" role="dialog"></aside>'
         '<aside class="sheet left" id="retro-drawer" role="dialog" aria-label="Ретро">'
         f'<div class="head"><span class="title" style="padding:0;font-size:16px">Ретро {html.escape(data.get("date", ""))}</span><span style="flex:1"></span><button class="ib" data-close>&#10005;</button></div>'
-        '<textarea spellcheck="false" placeholder="Что было вчера, хронология, результаты…"></textarea>'
-        '<div class="tools"><button data-reset type="button">Версия ИИ</button><button data-clear type="button">Очистить</button>'
-        '<button data-download type="button">Скачать .md</button><span class="saved"></span></div></aside>'
+        f'<textarea spellcheck="false" placeholder="{NOT_FOUND}"></textarea>'
+        '<div class="saved"></div></aside>'
     )
     return widgets, chrome
 
@@ -274,11 +285,13 @@ def render(md: str, retro: dict | None = None) -> str:
         inner = render_body(body)
         if cls:
             inner = inner.replace("<ul>", "<ul class=\"decisions\">", 1)
+        attr = ""
         if retro is not None and name.startswith("Ретро"):
             widgets, chrome = retro_block(retro)
             inner = widgets + inner
+            attr = " data-retro"
         slides.append(
-            f'<section class="slide"><header><h2>{inline(name)}</h2><span class="n">{n} / {total}</span></header>{inner}</section>'
+            f'<section class="slide"{attr}><header><h2>{inline(name)}</h2><span class="n">{n} / {total}</span></header>{inner}</section>'
         )
     return (
         "<!doctype html>\n<html lang=\"ru\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">"
