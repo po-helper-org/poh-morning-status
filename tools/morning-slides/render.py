@@ -6,11 +6,10 @@
   render.py report.md --stdout
 
 Если рядом лежит `<имя>.retro.json` (пишет навык), слайд «Ретро» становится
-интерактивным: виджеты Activity (созвоны за вчера) и Tasks (сделанное, с id или без)
-с панелью карточки справа — в ней обязательно «Источник»; вкладка «Описать ретро»
-слева живёт внутри слайда и видна только на нём. Панели и заметка — скрытые
-radio/checkbox + label: клики не навигируют и не требуют JS, работают в любом
-sandbox-просмотрщике; JS нужен только стрелкам и автосохранению заметки.
+интерактивным: виджеты Activity и Tasks, каждая строка открывает свою заметку —
+блочный редактор (порт BlockEditor poh-okr-plugin): первая строка — название,
+«/» — меню блоков, чеклисты, раздел «## Источники» обязателен. Панели — скрытые
+radio/checkbox + label; без JS заметка показывается статичным рендером.
 Пустые данные — «Данных не найдено», ничего не додумывается. Строка без `source`
 — код выхода 1.
 
@@ -76,19 +75,7 @@ code{font-family:ui-monospace,Menlo,monospace;font-size:14px;background:var(--so
 .check[data-priority=high]{border-color:#e5484d}.check[data-priority=medium]{border-color:#4c8dff}
 .edge{position:absolute;left:0;top:50%;z-index:40;text-decoration:none;display:block;box-sizing:border-box;writing-mode:vertical-rl;transform:translateY(-50%) rotate(180deg);background:#d2302a;color:#fff;border:0;padding:16px 8px;font:600 13px/1 -apple-system,"Segoe UI",Roboto,sans-serif;letter-spacing:.08em;text-transform:uppercase;cursor:pointer}
 .edge:hover{background:#b3261e}
-.sheet .src{margin-top:18px;padding-top:12px;border-top:1px solid #2a2b2f;font-size:13px;color:#8b8f96;word-break:break-all}.sheet .src b{color:#d5d6da;font-weight:600}
 .sheet .saved{font-size:12px;color:#8b8f96;margin-left:auto}
-/* заметка: рендер markdown + textarea, переключение label «Править» без JS */
-.sheet .btn{display:inline-flex;align-items:center;border:1px solid #2a2b2f;border-radius:6px;padding:4px 10px;font-size:13px;color:#d5d6da;cursor:pointer}
-.sheet .btn:hover{background:#1e1f23}
-.note-edit{display:none}.edit-toggle:checked~.body .note-view{display:none}.edit-toggle:checked~.body .note-edit{display:block}
-.sheet .edit-toggle:checked~.head .lbl-edit{display:none}.sheet .lbl-done{display:none}.sheet .edit-toggle:checked~.head .lbl-done{display:inline-flex}
-.note-edit textarea{width:100%;min-height:60vh;box-sizing:border-box;resize:vertical;border:1px solid #2a2b2f;border-radius:6px;background:#0b0c0e;color:#f0f0f2;font:14px/1.55 ui-monospace,Menlo,monospace;padding:10px 12px;outline:0}
-.md{font-size:15px;line-height:1.55;color:#e6e7ea}.md h1{font-size:20px;margin:14px 0 6px}.md h2{font-size:17px;margin:14px 0 6px}.md h3{font-size:15px;margin:12px 0 4px;color:#b9bcc3}
-.md p{margin:6px 0}.md ul,.md ol{margin:4px 0 8px;padding-left:22px}.md li{margin:3px 0}.md ul.todo{list-style:none;padding-left:0}
-.md li.todo{display:flex;align-items:flex-start;gap:8px}.md li.todo input{margin:5px 0 0;accent-color:#4c8dff}.md li.todo:has(input:checked) span{color:#8b8f96;text-decoration:line-through}
-.md code{background:#1e1f23;padding:1px 4px;border-radius:3px;font-size:13px}.md blockquote{margin:6px 0;padding-left:10px;border-left:2px solid #3a3b40;color:#b9bcc3}
-.md .empty{color:#8b8f96}
 .sheet{position:fixed;top:0;bottom:0;width:440px;max-width:96vw;display:none;flex-direction:column;z-index:44;background:#111214;color:#f0f0f2;box-shadow:0 0 24px rgba(0,0,0,.35);font-size:15px}
 .toggle{position:absolute;opacity:0;width:0;height:0;pointer-events:none}
 .toggle:checked~.sheet{display:flex}
@@ -100,14 +87,35 @@ label.row,label.edge,label.ib{cursor:pointer}.sheet.right{right:0;border-left:1p
 .sheet .head{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid #2a2b2f}
 .sheet .body{flex:1;overflow-y:auto;padding:14px 18px}
 .sheet .title{font-size:20px;font-weight:700;line-height:1.3;padding-bottom:8px}
-.sheet .desc{font-size:15px;line-height:1.55;color:#d5d6da;white-space:pre-wrap}
 .sheet .foot{display:flex;align-items:center;gap:8px;padding:10px 14px;border-top:1px solid #2a2b2f;font-size:12px;color:#8b8f96}
-.sheet .foot .grow{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.sheet .chip{display:inline-flex;align-items:center;gap:6px;padding:3px 8px;border-radius:8px;color:#4c8dff;font-size:14px}
 .sheet a.ib{text-decoration:none}
 .sheet .ib{width:28px;height:28px;border:0;border-radius:6px;background:transparent;color:#8b8f96;cursor:pointer;font-size:16px;display:inline-flex;align-items:center;justify-content:center}
 .sheet .ib:hover{background:#1e1f23;color:#f0f0f2}
-.sheet .flag{color:#e5484d}
+.sheet .saved{font-size:12px;color:#8b8f96;margin-left:auto}
+/* заметка: блочный редактор (порт BlockEditor poh-okr-plugin); без JS — статичный рендер .md */
+.md{font-size:15px;line-height:1.55;color:#e6e7ea}.md h1{font-size:20px;margin:0 0 10px}.md h2{font-size:17px;margin:14px 0 6px}.md h3{font-size:15px;margin:12px 0 4px;color:#b9bcc3}
+.md p{margin:6px 0}.md ul,.md ol{margin:4px 0 8px;padding-left:22px}.md li{margin:3px 0}.md ul.todo{list-style:none;padding-left:0}
+.md li.todo{display:flex;align-items:flex-start;gap:8px}.md li.todo input{margin:5px 0 0;accent-color:#4c8dff}.md li.todo:has(input:checked) span{color:#8b8f96;text-decoration:line-through}
+.md code{background:#1e1f23;padding:1px 4px;border-radius:3px;font-size:13px}.md blockquote{margin:6px 0;padding-left:10px;border-left:2px solid #3a3b40;color:#b9bcc3}
+.md hr{border:0;height:1px;background:#2a2b2f;margin:12px 0}.md .empty{color:#8b8f96}
+.editor{outline:none;font-size:15px;line-height:1.6;color:#e6e7ea;counter-reset:num;min-height:40vh}
+.editor>*{margin:0;padding:2px 0;position:relative;min-height:1.6em}
+.editor [data-block=title]{font-size:20px;font-weight:700;line-height:1.3;padding-bottom:8px;margin-bottom:6px;border-bottom:1px solid #2a2b2f}
+.editor [data-block=title]:empty::before{content:"Название";color:#8b8f96}
+.editor[data-empty] [data-block=text]:empty::before{content:attr(data-placeholder);color:#8b8f96}
+.editor [data-block=h1]{font-size:20px;font-weight:700;padding-top:10px}.editor [data-block=h2]{font-size:17px;font-weight:700;padding-top:8px}.editor [data-block=h3]{font-size:15px;font-weight:600;padding-top:6px;color:#b9bcc3}
+.editor [data-block=bullet],.editor [data-block=number]{padding-left:22px}
+.editor [data-block=bullet]::before{content:"•";position:absolute;left:6px;color:#4c8dff}
+.editor [data-block=number]{counter-increment:num}.editor [data-block=number]::before{content:counter(num) ".";position:absolute;left:2px;color:#8b8f96;font-size:13px}
+.editor [data-block=quote]{padding-left:12px;color:#b9bcc3;border-left:2px solid #3a3b40}
+.editor [data-block=divider]{padding:0;height:1px;background:#2a2b2f;margin:12px 0;min-height:1px}
+.editor [data-block=todo]{position:relative;padding-left:26px;min-height:24px}
+.editor .box{position:absolute;left:0;top:5px;width:16px;height:16px;border-radius:4px;border:1.5px solid #8b8f96;background:transparent;cursor:pointer;padding:0;display:flex;align-items:center;justify-content:center;user-select:none}
+.editor .box[data-on]{background:#4c8dff;border-color:#4c8dff}.editor .box[data-on]::after{content:"";width:8px;height:4px;margin-top:-2px;border-left:1.5px solid #fff;border-bottom:1.5px solid #fff;transform:rotate(-45deg)}
+.editor [data-block=todo][data-done]{color:#8b8f96;text-decoration:line-through}.editor [data-block=todo][data-done] .box{text-decoration:none}
+.menu{position:absolute;z-index:60;min-width:260px;background:#1a1b1f;border:1px solid #2a2b2f;border-radius:10px;padding:6px;box-shadow:0 10px 30px rgba(0,0,0,.5)}
+.menu button{display:flex;align-items:center;gap:14px;width:100%;border:0;background:transparent;color:#e6e7ea;font:15px/1.2 inherit;padding:9px 12px;border-radius:6px;text-align:left;cursor:pointer}
+.menu button:hover,.menu button[data-active]{background:#26272c}.menu .g{width:22px;color:#8b8f96;font-size:13px;text-align:center}
 @media(max-width:800px){.widgets{grid-template-columns:1fr}.slide{padding:28px 20px}.kpis{grid-template-columns:repeat(2,1fr)}h1{font-size:32px}}
 @media print{.deck{overflow:visible}.slide{page-break-after:always;min-height:auto;border:0}}
 """
@@ -118,26 +126,66 @@ document.addEventListener('keydown',e=>{if(e.target.closest&&e.target.closest('t
 if(['ArrowDown','ArrowRight','PageDown',' '].includes(e.key)){e.preventDefault();slides[Math.min(i+1,slides.length-1)].scrollIntoView({behavior:'smooth'})}
 if(['ArrowUp','ArrowLeft','PageUp'].includes(e.key)){e.preventDefault();slides[Math.max(i-1,0)].scrollIntoView({behavior:'smooth'})}
 if(e.key==='Escape'){document.querySelectorAll('.sheet[data-open]').forEach(s=>s.removeAttribute('data-open'))}});
-const esc=t=>t.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
-const inl=t=>esc(t).replace(/`([^`]+)`/g,'<code>$1</code>').replace(/\*\*([^*]+)\*\*/g,'<b>$1</b>').replace(/\b(PO-\d+|GDSLV-\d+)\b/g,'<span class="id">$1</span>');
-function md(src){const out=[];let list=null;const close=()=>{if(list){out.push(`</${list}>`);list=null}};
-for(const raw of src.split('\n')){const l=raw.trimEnd();let m;
-if((m=/^(#{1,3})\s+(.*)$/.exec(l))){close();out.push(`<h${m[1].length}>${inl(m[2])}</h${m[1].length}>`)}
-else if((m=/^\s*[-*]\s+\[([ xX])\]\s+(.*)$/.exec(l))){if(list!=='ul class="todo"'){close();out.push('<ul class="todo">');list='ul class="todo"'}out.push(`<li class="todo"><input type="checkbox"${m[1]===' '?'':' checked'}><span>${inl(m[2])}</span></li>`)}
-else if((m=/^\s*[-*]\s+(.*)$/.exec(l))){if(list!=='ul'){close();out.push('<ul>');list='ul'}out.push(`<li>${inl(m[1])}</li>`)}
-else if((m=/^\s*\d+[.)]\s+(.*)$/.exec(l))){if(list!=='ol'){close();out.push('<ol>');list='ol'}out.push(`<li>${inl(m[1])}</li>`)}
-else if((m=/^>\s?(.*)$/.exec(l))){close();out.push(`<blockquote>${inl(m[1])}</blockquote>`)}
-else if(l.trim()===''){close()}
-else{close();out.push(`<p>${inl(l)}</p>`)}}
-close();return out.join('')||'<p class="empty">Данных не найдено</p>'}
-document.querySelectorAll('.note').forEach(note=>{const key='morning-note-'+note.dataset.key;const ta=note.querySelector('textarea');const view=note.querySelector('.note-view');const saved=note.querySelector('.saved');
+// ——— Блочный редактор заметки (порт BlockEditor из poh-okr-plugin, без React) ———
+const TYPES=[['text','T','Текст'],['h1','H1','Заголовок 1'],['h2','H2','Заголовок 2'],['h3','H3','Заголовок 3'],['bullet','•','Маркированный список'],['number','1.','Нумерованный список'],['todo','☑','Пункт с галочкой'],['quote','❝','Цитата'],['divider','—','Разделитель']];
+const CONT=new Set(['bullet','number','todo']);
+function parseLine(l){if(/^(-{3,}|\*{3,}|_{3,})$/.test(l.trim()))return{type:'divider',text:'',done:false};let m;
+if((m=/^[-*]\s+\[([ xX])\]\s?(.*)$/.exec(l)))return{type:'todo',text:m[2],done:m[1].toLowerCase()==='x'};
+for(const [re,t] of [[/^###\s+(.*)$/,'h3'],[/^##\s+(.*)$/,'h2'],[/^#\s+(.*)$/,'h1'],[/^>\s?(.*)$/,'quote'],[/^[-*]\s+(.*)$/,'bullet'],[/^\d+[.)]\s+(.*)$/,'number']]){if((m=re.exec(l)))return{type:t,text:m[1],done:false}}
+return{type:'text',text:l,done:false}}
+function fmt(b){switch(b.type){case'title':return b.text;case'divider':return'---';case'h1':return'# '+b.text;case'h2':return'## '+b.text;case'h3':return'### '+b.text;case'bullet':return'- '+b.text;case'number':return'1. '+b.text;case'quote':return'> '+b.text;case'todo':return`- [${b.done?'x':' '}] `+b.text;default:return b.text}}
+function shortcut(t){for(const [re,type] of [[/^###\s(.*)$/,'h3'],[/^##\s(.*)$/,'h2'],[/^#\s(.*)$/,'h1'],[/^>\s(.*)$/,'quote'],[/^[-*]\s\[[ xX]?\]\s?(.*)$/,'todo'],[/^\[[ xX]?\]\s?(.*)$/,'todo'],[/^[-*]\s(.*)$/,'bullet'],[/^\d+[.)]\s(.*)$/,'number']]){const m=re.exec(t);if(m)return{type,rest:m[1]}}return null}
+function mountEditor(host,markdown,onChange){
+const root=document.createElement('div');root.className='editor';root.contentEditable='true';root.spellcheck=false;
+const lines=String(markdown||'').replace(/\r\n?/g,'\n').split('\n');
+// Первая строка — название: неделимая часть заметки, любой длины.
+const title=lines.shift()||'';const rest=lines.length?lines.map(parseLine):[{type:'text',text:'',done:false}];
+const node=(b)=>{const n=document.createElement('div');n.setAttribute('data-block',b.type);
+if(b.type==='divider'){n.contentEditable='false';return n}
+if(b.type==='todo'){if(b.done)n.setAttribute('data-done','');const box=document.createElement('button');box.type='button';box.className='box';box.contentEditable='false';if(b.done)box.setAttribute('data-on','');
+box.addEventListener('mousedown',e=>e.preventDefault());box.addEventListener('click',()=>{const on=!n.hasAttribute('data-done');n.toggleAttribute('data-done',on);box.toggleAttribute('data-on',on);emit()});
+n.append(document.createTextNode(b.text),box);return n}
+if(b.type==='text')n.setAttribute('data-placeholder','Текст, «/» — блоки');n.textContent=b.text;return n};
+root.append(node({type:'title',text:title.replace(/^#\s+/,''),done:false}),...rest.map(node));
+const text=n=>n.textContent||'';
+const read=()=>[...root.children].map(n=>({type:n.getAttribute('data-block')||'text',text:text(n),done:n.hasAttribute('data-done')}));
+const serialize=()=>{const ls=read().map(fmt);while(ls.length>1&&ls[ls.length-1].trim()==='')ls.pop();return ls.join('\n')};
+const markEmpty=()=>{const only=root.children.length===2?root.children[1]:null;root.toggleAttribute('data-empty',!!only&&only.getAttribute('data-block')==='text'&&text(only).trim()==='')};
+const emit=()=>{markEmpty();onChange(serialize(),text(root.firstElementChild))};
+const cur=()=>{const sel=getSelection();if(!sel||!sel.rangeCount)return null;let n=sel.getRangeAt(0).startContainer;while(n&&n.parentElement&&n.parentElement!==root)n=n.parentElement;return n&&n.parentElement===root?n:null};
+const focus=n=>{const r=document.createRange();const sel=getSelection();if(n.getAttribute('data-block')==='todo'){let t=n.firstChild;if(!t||t.nodeType!==3){t=document.createTextNode('');n.prepend(t)}r.setStart(t,t.textContent.length);r.collapse(true)}else{r.selectNodeContents(n);r.collapse(false)}sel.removeAllRanges();sel.addRange(r)};
+let menu=null;const closeMenu=()=>{if(menu){menu.remove();menu=null}};
+const setType=(n,type)=>{if(n.getAttribute('data-block')==='title')return;const rep=node({type,text:type==='divider'?'':text(n),done:false});n.replaceWith(rep);
+if(type==='divider'){const after=node({type:'text',text:'',done:false});rep.after(after);focus(after)}else focus(rep);emit()};
+const openMenu=(n)=>{closeMenu();menu=document.createElement('div');menu.className='menu';let active=0;
+TYPES.forEach(([type,g,label],i)=>{const b=document.createElement('button');b.type='button';b.innerHTML=`<span class="g">${g}</span><span>${label}</span>`;if(i===0)b.setAttribute('data-active','');
+b.addEventListener('mousedown',e=>e.preventDefault());b.addEventListener('click',()=>{n.textContent='';closeMenu();setType(n,type)});menu.append(b)});
+menu.style.top=(n.offsetTop+n.offsetHeight+4)+'px';menu.style.left=n.offsetLeft+'px';host.append(menu);
+const key=e=>{if(!menu){document.removeEventListener('keydown',key,true);return}const items=[...menu.querySelectorAll('button')];
+if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();e.stopPropagation();items[active].removeAttribute('data-active');active=(active+(e.key==='ArrowDown'?1:-1)+items.length)%items.length;items[active].setAttribute('data-active','')}
+else if(e.key==='Enter'){e.preventDefault();e.stopPropagation();items[active].click();document.removeEventListener('keydown',key,true)}
+else if(e.key==='Escape'){e.preventDefault();e.stopPropagation();closeMenu();document.removeEventListener('keydown',key,true)}};
+document.addEventListener('keydown',key,true)};
+root.addEventListener('input',()=>{const n=cur();if(n){const t=text(n);const type=n.getAttribute('data-block');
+if(type==='todo'){const box=n.querySelector('.box');if(box&&box.textContent){const stray=box.textContent;box.textContent='';let tn=n.firstChild;if(!tn||tn.nodeType!==3){tn=document.createTextNode('');n.prepend(tn)}tn.textContent+=stray;focus(n)}}
+if(type!=='title'){if(t==='/'){openMenu(n);return}
+if(menu&&t!=='/')closeMenu();
+if(type==='text'){if(/^-{3,}$/.test(t.trim())){setType(n,'divider');return}const sc=shortcut(t);if(sc){n.textContent=sc.rest;setType(n,sc.type);return}}}}
+emit()});
+root.addEventListener('beforeinput',e=>{const n=cur();if(!n)return;const type=n.getAttribute('data-block')||'text';
+if(e.inputType==='insertParagraph'||e.inputType==='insertLineBreak'){e.preventDefault();if(menu)return;
+if(CONT.has(type)&&text(n).trim()===''){setType(n,'text');return}
+const created=node({type:CONT.has(type)?type:'text',text:'',done:false});n.after(created);focus(created);emit();return}
+if(e.inputType==='deleteContentBackward'&&type!=='title'&&text(n).trim()===''){e.preventDefault();
+if(type!=='text'){setType(n,'text');return}const prev=n.previousElementSibling;if(!prev)return;n.remove();focus(prev);emit()}});
+markEmpty();host.replaceChildren(root);return{serialize}}
+document.querySelectorAll('.note').forEach(note=>{const key='morning-note-'+note.dataset.key;const src=note.querySelector('textarea.src');const host=note.querySelector('.note-view');const saved=note.querySelector('.saved');
 let stored=null;try{stored=localStorage.getItem(key)}catch(_){}
-if(stored!==null){ta.value=stored;view.innerHTML=md(stored)}
-const persist=()=>{try{localStorage.setItem(key,ta.value);saved.textContent='сохранено '+new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'})}catch(_){saved.textContent='localStorage недоступен'}};
-ta.addEventListener('input',()=>{view.innerHTML=md(ta.value);persist()});
-view.addEventListener('change',e=>{if(e.target.type!=='checkbox')return;const boxes=[...view.querySelectorAll('input[type=checkbox]')];const idx=boxes.indexOf(e.target);let n=-1;
-ta.value=ta.value.split('\n').map(line=>{const m=/^(\s*[-*]\s+)\[([ xX])\](\s+.*)$/.exec(line);if(!m)return line;n++;return n===idx?`${m[1]}[${e.target.checked?'x':' '}]${m[3]}`:line}).join('\n');
-view.innerHTML=md(ta.value);persist()});});
+const initial=stored??(src?src.value:'');
+const rowTitle=note.dataset.row?document.querySelector(`label.row[for="${note.dataset.row}"] .t`):null;
+mountEditor(host,initial,(mdText,title)=>{try{localStorage.setItem(key,mdText);saved.textContent='сохранено '+new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'})}catch(_){saved.textContent='localStorage недоступен'}
+if(rowTitle)rowTitle.textContent=title});
+if(stored!==null&&rowTitle)rowTitle.textContent=initial.split('\n')[0]});
 """
 
 
@@ -213,13 +261,14 @@ NOT_FOUND = "Данных не найдено"
 
 
 def validate_retro(data: dict) -> None:
-    """Каждая строка Tasks/Activity обязана нести `source`: панель показывает его всегда."""
+    """Каждая заметка Tasks/Activity: первая строка — название, внутри обязателен раздел «Источники»."""
     for kind in ("tasks", "activity"):
         for i, item in enumerate(data.get(kind, [])):
-            if not str(item.get("source", "")).strip():
-                raise ValueError(f"retro.json: {kind}[{i}] без поля source — откуда сведения?")
-            if not str(item.get("title", "")).strip():
-                raise ValueError(f"retro.json: {kind}[{i}] без title")
+            note = str(item.get("note", ""))
+            if not note.strip().splitlines()[0:1] or not note.strip().splitlines()[0].strip():
+                raise ValueError(f"retro.json: {kind}[{i}] без note — первая строка заметки и есть название")
+            if not re.search(r"^#{1,3}\s*Источники\s*$", note, re.M | re.I):
+                raise ValueError(f"retro.json: {kind}[{i}]: в note нет раздела «## Источники» — откуда сведения?")
 
 
 RETRO_ANCHOR = "retro"
@@ -236,11 +285,18 @@ OL_RE = re.compile(r"^\s*\d+[.)]\s+(.*)$")
 Q_RE = re.compile(r"^>\s?(.*)$")
 
 
-def md_to_html(src: str) -> str:
-    """Markdown заметки → HTML: заголовки, списки, чеклисты, цитаты, **жирный**, `код`.
-    Зеркало функции md() в JS: без скриптов заметка читается так же."""
+DIVIDER_RE = re.compile(r"^(-{3,}|\*{3,}|_{3,})$")
+
+
+def md_to_html(src: str, first_is_title: bool = False) -> str:
+    """Markdown заметки → HTML: заголовки, списки, чеклисты, цитаты, разделители, **жирный**, `код`.
+    Статичный рендер для просмотра без JS; с JS вместо него монтируется блочный редактор."""
     out: list[str] = []
     state: str | None = None
+    lines = src.splitlines()
+    if first_is_title and lines:
+        out.append(f'<h1 class="title">{inline(lines[0].lstrip("# ").strip()) or NOT_FOUND}</h1>')
+        lines = lines[1:]
 
     def close() -> None:
         nonlocal state
@@ -248,9 +304,11 @@ def md_to_html(src: str) -> str:
             out.append(f"</{state.split(' ')[0]}>")
             state = None
 
-    for raw in src.splitlines():
+    for raw in lines:
         line = raw.rstrip()
-        if (m := H_RE.match(line)):
+        if DIVIDER_RE.match(line.strip()):
+            close(); out.append("<hr>")
+        elif (m := H_RE.match(line)):
             close(); out.append(f"<h{len(m[1])}>{inline(m[2])}</h{len(m[1])}>")
         elif (m := TODO_RE.match(line)):
             if state != 'ul class="todo"':
@@ -274,18 +332,17 @@ def md_to_html(src: str) -> str:
     return "".join(out) or f'<p class="empty">{NOT_FOUND}</p>'
 
 
-def note_panel(key: str, side: str, title: str, text: str, foot: str, close_for: str) -> str:
-    """Панель-заметка: заголовок, markdown-рендер, textarea за label «Править», подвал с источником."""
+def note_panel(key: str, side: str, text: str, close_for: str, row: str = "") -> str:
+    """Панель-заметка: только заметка. Первая строка — название, «Источники» — раздел внутри.
+    Без JS — статичный рендер; с JS монтируется редактор из markdown в скрытом <textarea class=src>."""
+    payload = html.escape(text)   # в textarea сущности декодируются, теги не парсятся
     return (
-        f'<aside class="sheet {side} note" role="dialog" data-key="{html.escape(key)}">'
-        f'<input class="toggle edit-toggle" type="checkbox" id="edit-{html.escape(key)}">'
-        f'<div class="head"><span class="title" style="padding:0;font-size:17px">{html.escape(title)}</span><span style="flex:1"></span>'
-        f'<label class="btn lbl-edit" for="edit-{html.escape(key)}">Править</label>'
-        f'<label class="btn lbl-done" for="edit-{html.escape(key)}">Готово</label>'
+        f'<aside class="sheet {side} note" role="dialog" data-key="{html.escape(key)}"{f" data-row=\"{row}\"" if row else ""}>'
+        f'<div class="head"><span style="flex:1"></span>'
         f'<label class="ib" for="{close_for}" role="button" aria-label="закрыть">&#10005;</label></div>'
-        f'<div class="body"><div class="note-view md">{md_to_html(text)}</div>'
-        f'<div class="note-edit"><textarea spellcheck="false" placeholder="{NOT_FOUND}">{html.escape(text)}</textarea></div></div>'
-        f'<div class="foot">{foot}<span class="saved"></span></div></aside>'
+        f'<div class="body"><textarea class="src" hidden>{payload}</textarea>'
+        f'<div class="note-view md">{md_to_html(text, first_is_title=True)}</div></div>'
+        f'<div class="foot"><span class="saved"></span></div></aside>'
     )
 
 
@@ -297,8 +354,12 @@ def item(input_id: str, row: str, sheet: str) -> str:
     )
 
 
+def note_title(note: str) -> str:
+    return note.strip().splitlines()[0].lstrip("# ").strip()
+
+
 def retro_block(data: dict) -> tuple[str, str]:
-    """Слайд ретро: виджеты Activity/Tasks, каждая строка открывает заметку; вкладка — заметка ретро."""
+    """Слайд ретро: виджеты Activity/Tasks, каждая строка открывает свою заметку; вкладка — заметка ретро."""
     validate_retro(data)
     date = data.get("date", "")
     activity = data.get("activity", [])
@@ -306,26 +367,19 @@ def retro_block(data: dict) -> tuple[str, str]:
     act_rows = "".join(
         item(
             f"event-{i}",
-            f'<span class="m">{html.escape(e.get("start", ""))}</span><span class="t">{html.escape(e.get("title", ""))}</span>'
+            f'<span class="m">{html.escape(e.get("start", ""))}</span><span class="t">{html.escape(note_title(e["note"]))}</span>'
             f'<span class="m">{html.escape(", ".join(e.get("with", [])[:2]))}{" …" if len(e.get("with", [])) > 2 else ""}</span>',
-            note_panel(
-                f"{date}-event-{i}", "right", e.get("title", ""), e.get("summary") or "",
-                f'<span class="grow"><b>Источник:</b> {html.escape(e["source"])}</span>', "sheet-none",
-            ),
+            note_panel(f"{date}-event-{i}", "right", e["note"], "sheet-none", f"event-{i}"),
         )
         for i, e in enumerate(activity)
     ) or f'<div class="empty">{NOT_FOUND}</div>'
     task_rows = "".join(
         item(
             f"task-{i}",
-            f'<span class="check" data-done></span>'
+            '<span class="check" data-done></span>'
             + (f'<span class="id">{html.escape(t["id"])}</span>' if t.get("id") else "")
-            + f'<span class="t">{html.escape(t.get("title", ""))}</span><span class="m">{html.escape(t.get("kr", "") or "")}</span>',
-            note_panel(
-                f"{date}-task-{i}", "right", t.get("title", ""), t.get("note") or "",
-                (f'<span class="id">{html.escape(t["id"])}</span>' if t.get("id") else "")
-                + f'<span class="grow"><b>Источник:</b> {html.escape(t["source"])}</span>', "sheet-none",
-            ),
+            + f'<span class="t">{html.escape(note_title(t["note"]))}</span><span class="m">{html.escape(t.get("kr", "") or "")}</span>',
+            note_panel(f"{date}-task-{i}", "right", t["note"], "sheet-none", f"task-{i}"),
         )
         for i, t in enumerate(tasks)
     ) or f'<div class="empty">{NOT_FOUND}</div>'
@@ -335,9 +389,14 @@ def retro_block(data: dict) -> tuple[str, str]:
         f'<div class="widgets"><div class="widget"><h4><span>Activity</span><span>{len(activity)}</span></h4>{act_rows}</div>'
         f'<div class="widget"><h4><span>Tasks</span><span>{len(tasks)}</span></h4>{task_rows}</div></div>'
     )
+    retro_note = data.get("note_draft") or ""
+    if not retro_note.strip():
+        retro_note = f"Ретро {date}\n" + RETRO_TEMPLATE
+    elif not retro_note.lstrip().startswith("Ретро"):
+        retro_note = f"Ретро {date}\n" + retro_note
     chrome = (
         '<div class="item"><input class="toggle" type="checkbox" id="retro-note">'
-        + note_panel(f"{date}-retro", "left", f"Ретро {date}", data.get("note_draft") or RETRO_TEMPLATE, "", "retro-note")
+        + note_panel(f"{date}-retro", "left", retro_note, "retro-note")
         .replace('class="sheet left note"', 'class="sheet left note" id="retro-note-sheet"')
         + "</div>"
     )

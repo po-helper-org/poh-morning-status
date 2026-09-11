@@ -18,6 +18,7 @@ execFileSync('python3', [resolve(here, '..', 'render.py'), resolve(here, 'sample
 assert.ok(existsSync(out))
 const url = pathToFileURL(out).href
 
+let localStorageGet
 const visible = (page, sel) => page.locator(sel).evaluate(el => getComputedStyle(el).display !== 'none')
 
 async function scenario(browser, { javaScriptEnabled, viewport = { width: 1200, height: 800 } }) {
@@ -36,74 +37,100 @@ async function scenario(browser, { javaScriptEnabled, viewport = { width: 1200, 
   await page.locator('#retro').scrollIntoViewIfNeeded()
   await edge.waitFor({ state: 'visible' })
 
-  // 2. «Описать ретро» → заметка слева с заготовкой из 4 разделов и чеклистом; ✕ закрывает.
+  const noteText = sel => page.locator(sel).evaluate(el => el.innerText)
+
+  // 2. «Описать ретро» → заметка слева, сразу редактируемая: название + 4 раздела + чеклист.
   const drawer = page.locator('#retro-note-sheet')
   assert.equal(await visible(page, '#retro-note-sheet'), false, `${label}: заметка скрыта до клика`)
   await edge.click()
   assert.equal(await visible(page, '#retro-note-sheet'), true, `${label}: заметка открылась`)
-  const heads = await drawer.locator('.note-view h2').allInnerTexts()
-  assert.deepEqual(heads, ['Что было сделано', 'Как это влияет на цели спринта', 'Как это влияет на цели квартала', 'Что не получилось сделать'], `${label}: заготовка ретро`)
-  assert.ok(await drawer.locator('.note-view li.todo input').count() >= 3, `${label}: чеклист отрисован`)
+  const body = '#retro-note-sheet .body'
+  assert.match(await noteText(body), /Ретро 2026-09-10/, `${label}: название — первая строка`)
+  for (const h of ['Что было сделано', 'Как это влияет на цели спринта', 'Как это влияет на цели квартала', 'Что не получилось сделать']) {
+    assert.match(await noteText(body), new RegExp(h), `${label}: раздел «${h}»`)
+  }
+  if (javaScriptEnabled) {
+    assert.equal(await drawer.locator('.editor[contenteditable="true"]').count(), 1, 'редактор смонтирован, режимов нет')
+    assert.equal(await drawer.locator('.editor [data-block="title"]').innerText(), 'Ретро 2026-09-10')
+    assert.equal(await drawer.locator('.editor [data-block="todo"]').count(), 3)
+    assert.equal(await drawer.locator('label.lbl-edit, .btn').count(), 0, 'кнопок режима нет')
+  } else {
+    assert.equal(await drawer.locator('.note-view li.todo input').count(), 3, `${label}: чеклист отрисован`)
+  }
   await drawer.locator('.head label[for="retro-note"]').click()
   assert.equal(await visible(page, '#retro-note-sheet'), false, `${label}: заметка закрылась`)
 
-  // 3. Клик по задаче → заметка «что сделано»: markdown-рендер, чеклист, источник, id.
+  // 3. Клик по задаче → заметка «что сделано»; «Источники» — раздел заметки, отдельного блока нет.
   await page.locator('label.row[for="task-0"]').click()
   const sheet0 = page.locator('#task-0 ~ aside.sheet')
   await sheet0.waitFor({ state: 'visible' })
-  assert.match(await sheet0.locator('.title').innerText(), /смету за август/, `${label}: заголовок задачи`)
-  assert.match(await sheet0.locator('.note-view').innerText(), /Сделано:.*отправлена Бордюгу/s, `${label}: заметка задачи`)
-  assert.equal(await sheet0.locator('.note-view li.todo input').count(), 3)
-  assert.match(await sheet0.locator('.foot').innerText(), /PO-105.*Источник: Backlog\.md: backlog\/tasks\/po-105/s, `${label}: id и источник в подвале`)
-  assert.equal(await sheet0.locator('.chip, .flag').count(), 0, `${label}: лишнего хрома нет`)
+  const t0 = await noteText('#task-0 ~ aside.sheet .body')
+  assert.match(t0, /^Ишманов \+ Бордюг: отправить смету за август/, `${label}: название первой строкой`)
+  assert.match(t0, /Сделано:.*отправлена Бордюгу/s, `${label}: текст заметки`)
+  assert.match(t0, /Источники[\s\S]*backlog\/tasks\/po-105/, `${label}: источники внутри заметки`)
+  assert.equal(await sheet0.locator('.chip, .flag, div.src, .lbl-edit').count(), 0, `${label}: лишнего хрома нет`)
 
-  // 4. Чеклист кликается; с JS — исходник и localStorage обновляются.
-  const third = sheet0.locator('.note-view li.todo input').nth(2)
-  assert.equal(await third.isChecked(), false)
-  await third.click()
-  assert.equal(await third.isChecked(), true, `${label}: чекбокс переключился`)
   if (javaScriptEnabled) {
-    assert.match(await sheet0.locator('textarea').inputValue(), /- \[x\] получить подтверждение/, 'исходник markdown обновился')
+    const ed = sheet0.locator('.editor')
+    // 4. Чеклист: клик по флажку меняет исходник (- [ ] → - [x]) и сохраняется.
+    const todos = ed.locator('[data-block="todo"]')
+    assert.equal(await todos.count(), 3)
+    assert.equal(await todos.nth(2).getAttribute('data-done'), null)
+    await todos.nth(2).locator('.box').click()
+    assert.equal(await todos.nth(2).getAttribute('data-done'), '', 'флажок отмечен')
+    assert.match(localStorageGet = await page.evaluate(() => localStorage.getItem('morning-note-2026-09-10-task-0')), /- \[x\] получить подтверждение/, 'исходник и localStorage обновлены')
+
+    // 5. Правка названия сразу в заметке: строка виджета обновляется.
+    const title = ed.locator('[data-block="title"]')
+    await title.click()
+    await page.keyboard.press('End')
+    await page.keyboard.type(' — ок')
+    assert.match(await page.locator('label.row[for="task-0"] .t').innerText(), /смету за август — ок$/, 'название в строке виджета обновилось')
+
+    // 6. «/» в пустом блоке открывает меню блоков с 9 типами; выбор «Пункт с галочкой» делает todo.
+    const last = ed.locator('> *').last()
+    await last.click()
+    await page.keyboard.press('End')
+    await page.keyboard.press('Enter')
+    await page.keyboard.type('/')
+    const menu = sheet0.locator('.menu')
+    await menu.waitFor({ state: 'visible' })
+    assert.deepEqual(await menu.locator('button').allInnerTexts().then(a => a.map(t => t.replace(/^\S+\s+/, ''))),
+      ['Текст', 'Заголовок 1', 'Заголовок 2', 'Заголовок 3', 'Маркированный список', 'Нумерованный список', 'Пункт с галочкой', 'Цитата', 'Разделитель'], 'меню блоков')
+    await menu.locator('button', { hasText: 'Пункт с галочкой' }).click()
+    await page.keyboard.type('новый пункт')
+    assert.equal(await menu.count(), 0, 'меню закрылось')
+    assert.match(await page.evaluate(() => localStorage.getItem('morning-note-2026-09-10-task-0')), /- \[ \] новый пункт/, 'todo сохранён в markdown')
+
+    // 7. Набор «# » превращает строку в заголовок, Enter в пустом пункте выходит из списка.
+    await page.keyboard.press('Enter')
+    await page.keyboard.press('Enter')
+    await page.keyboard.type('## Итог')
+    assert.match(await page.evaluate(() => localStorage.getItem('morning-note-2026-09-10-task-0')), /\n## Итог$/, 'заголовок через «## »')
   }
 
-  // 5. «Править» показывает textarea, «Готово» — рендер; с JS правка перерисовывает.
-  await sheet0.locator('label.lbl-edit').click()
-  const ta0 = sheet0.locator('textarea')
-  await ta0.waitFor({ state: 'visible' })
-  if (javaScriptEnabled) {
-    await ta0.fill('# Новый заголовок\n- [ ] пункт')
-    await sheet0.locator('label.lbl-done').click()
-    assert.match(await sheet0.locator('.note-view h1').innerText(), /Новый заголовок/, 'правка отрисована')
-  } else {
-    await sheet0.locator('label.lbl-done').click()
-  }
-  assert.equal(await visible(page, '#task-0 ~ aside.sheet .note-edit'), false, `${label}: textarea спрятан`)
-
-  // 6. Другая задача закрывает первую; задача без id; ✕ закрывает.
+  // 8. Другая задача закрывает первую; ✕ закрывает; событие — заметка с итогом и источниками.
   await page.locator('label.row[for="task-1"]').click()
   const sheet1 = page.locator('#task-1 ~ aside.sheet')
   await sheet1.waitFor({ state: 'visible' })
   assert.equal(await visible(page, '#task-0 ~ aside.sheet'), false, `${label}: первая панель закрыта`)
-  assert.equal(await sheet1.locator('.foot .id').count(), 0, `${label}: задача без id`)
-  assert.match(await sheet1.locator('.note-view ol li').first().innerText(), /PO-128/)
+  assert.match(await noteText('#task-1 ~ aside.sheet .body'), /^Заведены 5 инициатив/, `${label}: задача без id`)
   await sheet1.locator('.head label[for="sheet-none"]').click()
   assert.equal(await visible(page, '#task-1 ~ aside.sheet'), false, `${label}: панель закрыта крестиком`)
-
-  // 7. Событие → заметка-summary встречи с источником.
   await page.locator('label.row[for="event-0"]').click()
   const ev = page.locator('#event-0 ~ aside.sheet')
   await ev.waitFor({ state: 'visible' })
-  assert.match(await ev.locator('.title').innerText(), /VK: переезд виджета/)
-  assert.match(await ev.locator('.note-view').innerText(), /Итог.*бюджет Q4/s, `${label}: summary встречи`)
-  assert.match(await ev.locator('.foot').innerText(), /Источник: календарь MTS Exchange/)
+  assert.match(await noteText('#event-0 ~ aside.sheet .body'), /^VK: переезд виджета[\s\S]*Итог[\s\S]*Источники[\s\S]*MTS Exchange/, `${label}: заметка события`)
   await ev.locator('.head label[for="sheet-none"]').click()
 
-  // 8. С JS правки переживают перезагрузку (localStorage по дате и ключу заметки).
+  // 9. С JS правки переживают перезагрузку.
   if (javaScriptEnabled) {
     await page.reload()
     await page.locator('#retro').scrollIntoViewIfNeeded()
+    assert.match(await page.locator('label.row[for="task-0"] .t').innerText(), /— ок$/, 'название пережило перезагрузку')
     await page.locator('label.row[for="task-0"]').click()
-    assert.match(await page.locator('#task-0 ~ aside.sheet .note-view h1').innerText(), /Новый заголовок/, 'заметка задачи пережила перезагрузку')
+    const t = await noteText('#task-0 ~ aside.sheet .body')
+    assert.match(t, /новый пункт/); assert.match(t, /Итог/)
   }
 
   assert.deepEqual(errors, [], `${label}: ошибок в консоли нет`)
@@ -129,6 +156,7 @@ async function emptyData(browser) {
   const heads = await page.locator('#retro-note-sheet .note-view h2').allInnerTexts()
   assert.equal(heads.length, 4, 'заготовка ретро есть и без данных')
   assert.equal(await page.locator('#retro-note-sheet .note-view li').count(), 0, 'ничего не придумано')
+  assert.equal(await page.locator('#retro-note-sheet .note-view h1.title').innerText(), 'Ретро 2026-09-10')
   await ctx.close()
   console.log('ok — пустые данные')
 }

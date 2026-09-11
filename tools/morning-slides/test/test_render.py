@@ -32,42 +32,55 @@ if __name__ == "__main__":
     unittest.main()
 
 class RetroTest(unittest.TestCase):
-    def test_retro_widgets(self):
+    def data(self):
         import json
-        data = json.loads((Path(__file__).parent / "sample.retro.json").read_text())
-        out = render(SAMPLE, data)
+        return json.loads((Path(__file__).parent / "sample.retro.json").read_text())
+    def test_retro_widgets(self):
+        out = render(SAMPLE, self.data())
         self.assertEqual(out.count('<label class="row" for="task-'), 2)
         self.assertEqual(out.count('<label class="row" for="event-'), 2)
-        self.assertEqual(out.count('<aside class="sheet right note"'), 4)   # панели отрисованы заранее, без JS
-        self.assertEqual(out.count('type="radio" name="sheet"'), 5)    # 4 строки + sheet-none
+        self.assertEqual(out.count('<aside class="sheet right note"'), 4)   # панели отрисованы заранее
+        self.assertEqual(out.count('type="radio" name="sheet"'), 5)         # 4 строки + sheet-none
         self.assertIn('<label class="edge" for="retro-note"', out)
-        self.assertIn('<input class="toggle" type="checkbox" id="retro-note">', out)
         self.assertIn('<section class="slide" id="retro" data-retro>', out)
-        self.assertNotIn('href="#', out)   # никаких переходов по якорям
+        self.assertNotIn('href="#', out)
         retro = out.split('id="retro" data-retro>')[1].split('</section>')[0]
-        self.assertNotIn('<table>', retro)   # таблицы KR/Результат на слайде ретро нет
+        self.assertNotIn('<table>', retro)
+        # название строки — первая строка заметки; без id — только название
+        self.assertIn('for="task-0"><span class="check" data-done></span><span class="id">PO-105</span><span class="t">Ишманов + Бордюг: отправить смету за август</span>', out)
+        self.assertIn('for="task-1"><span class="check" data-done></span><span class="t">Заведены 5 инициатив', out)
+        # статичный рендер: заголовок-название, чеклист, раздел «Источники» внутри заметки
+        self.assertIn('<h1 class="title">Ишманов + Бордюг: отправить смету за август</h1>', out)
         self.assertIn('<li class="todo"><input type="checkbox" checked><span>собрать данные за август</span></li>', out)
-        self.assertIn('<h2>Как это влияет на цели квартала</h2>', out)
-        self.assertNotIn('retro-summary', out)
-        self.assertNotIn('data-download', out)
-        self.assertIn('for="task-0"><span class="check" data-done></span><span class="id">PO-105</span>', out)
-        self.assertIn('for="task-1"><span class="check" data-done></span><span class="t">', out)   # без id — только заголовок
-        self.assertIn('<b>Источник:</b> Backlog.md: backlog/tasks/po-105', out)
-    def test_source_required(self):
-        bad = {"date": "2026-09-10", "tasks": [{"title": "Фикс вебхука"}], "activity": []}
+        self.assertIn('<h2>Источники</h2>', out)
+        self.assertNotIn('class="src"><b>', out)   # отдельного блока «Источник» больше нет
+        # заготовка ретро
+        for h in ('Что было сделано', 'Как это влияет на цели спринта', 'Как это влияет на цели квартала', 'Что не получилось сделать'):
+            self.assertIn(f'<h2>{h}</h2>', out)
+        # markdown-исходник для редактора лежит в скрытом textarea и экранирован
+        self.assertIn('<textarea class="src" hidden>Ишманов + Бордюг', out)
+    def test_source_section_required(self):
+        bad = {"date": "2026-09-10", "tasks": [{"note": "Фикс вебхука\n- сделано"}], "activity": []}
         with self.assertRaises(ValueError):
             render(SAMPLE, bad)
+        with self.assertRaises(ValueError):
+            render(SAMPLE, {"date": "2026-09-10", "tasks": [{"note": ""}], "activity": []})
     def test_empty_data_not_invented(self):
         out = render(SAMPLE, {"date": "2026-09-10", "tasks": [], "activity": []})
-        self.assertEqual(out.count('<div class="empty">Данных не найдено</div>'), 2)   # два виджета
-        self.assertIn('<h2>Что не получилось сделать</h2>', out)   # заготовка ретро есть и без данных
-    def test_md_renderer(self):
-        from render import md_to_html
-        h = md_to_html("# T\n- [ ] a\n- [x] b\n\n1. one\n> q\n**b** `c` PO-1")
-        self.assertIn('<h1>T</h1>', h); self.assertIn('checked><span>b</span>', h)
-        self.assertIn('<ol><li>one</li></ol>', h); self.assertIn('<blockquote>q</blockquote>', h)
-        self.assertIn('<b>b</b> <code>c</code> <span class="id">PO-1</span>', h)
-        self.assertEqual(md_to_html(""), '<p class="empty">Данных не найдено</p>')
+        self.assertEqual(out.count('<div class="empty">Данных не найдено</div>'), 2)
+        self.assertIn('<h1 class="title">Ретро 2026-09-10</h1>', out)
+        self.assertIn('<h2>Что не получилось сделать</h2>', out)
     def test_no_json_no_widgets(self):
         out = render(SAMPLE, None)
         self.assertNotIn('id="retro-note-sheet"', out)
+    def test_md_renderer(self):
+        from render import md_to_html
+        h = md_to_html("Название\n# T\n- [ ] a\n- [x] b\n\n1. one\n> q\n---\n**b** `c` PO-1", first_is_title=True)
+        self.assertIn('<h1 class="title">Название</h1>', h); self.assertIn('<h1>T</h1>', h)
+        self.assertIn('checked><span>b</span>', h); self.assertIn('<ol><li>one</li></ol>', h)
+        self.assertIn('<blockquote>q</blockquote>', h); self.assertIn('<hr>', h)
+        self.assertIn('<b>b</b> <code>c</code> <span class="id">PO-1</span>', h)
+        self.assertEqual(md_to_html(""), '<p class="empty">Данных не найдено</p>')
+
+if __name__ == "__main__":
+    unittest.main()
