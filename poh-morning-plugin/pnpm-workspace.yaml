@@ -1,0 +1,16 @@
+# Пакеты харнесса выпускаются как alpha и моложе порога minimumReleaseAge pnpm 11 —
+# без исключений установка их не видит.
+minimumReleaseAgeExclude:
+  - '@deepseek-ai/dsh-skill-filesystem@0.1.2-alpha.5'
+  - '@deepseek-ai/dsh-skill@0.1.2-alpha.5'
+  - '@deepseek-ai/dsh-fs@0.1.2-alpha.5'
+  - '@deepseek-ai/dsh-home-paths@0.1.2-alpha.5'
+  - '@deepseek-ai/dsh-invariants@0.1.2-alpha.5'
+  - '@deepseek-ai/dsh-scope@0.1.2-alpha.5'
+  - '@deepseek-ai/dsh-util-workspace-path@0.1.2-alpha.5'
+  - '@deepseek-ai/dsh-atomic-write@0.1.2-alpha.5'
+  - '@deepseek-ai/dsh-typert-protocol@0.1.2-alpha.5'
+  - '@deepseek-ai/dsh-typert-registry@0.1.2-alpha.5'
+  - '@deepseek-ai/dsh-util-values@0.1.2-alpha.5'
+  - '@deepseek-ai/dsh-util-time@0.1.2-alpha.5'
+  - '@deepseek-ai/dsh-user-approval@0.1.2-alpha.5'

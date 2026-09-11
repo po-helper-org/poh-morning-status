@@ -1,0 +1,44 @@
+{
+  "name": "poh-morning-plugin",
+  "version": "0.1.0",
+  "description": "Утренний бриф PO для DeepSeek Harness: подключает навыки poh-morning-status (/morning, /mts-link-sync) как отдельный корень навыков",
+  "license": "MIT",
+  "type": "module",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib",
+    "cordis.patch.yml"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "tsc -p tsconfig.test.json && node --test lib-test/test/*.test.js"
+  },
+  "dependencies": {
+    "@deepseek-ai/dsh-fs": "0.1.2-alpha.5",
+    "@deepseek-ai/dsh-home-paths": "0.1.2-alpha.5",
+    "@deepseek-ai/dsh-skill": "0.1.2-alpha.5",
+    "@deepseek-ai/dsh-skill-filesystem": "0.1.2-alpha.5",
+    "@deepseek-ai/schemastery": "^3.18.2"
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis": "^4.0.2",
+    "@types/node": "^22.10.2",
+    "typescript": "^5.7.2"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "^4.0.1"
+  }
+}
