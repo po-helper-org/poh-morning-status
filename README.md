@@ -9,8 +9,33 @@
 4 — риски и раннее предупреждение. Меряется лид-таймом сигнала: сколько часов между
 появлением отклонения в канале и моментом, когда PO его увидел.
 
-**Статус:** спецификация. Коннекторы и навыки не реализованы; в репозитории — контракт
-и дорожная карта.
+**Статус:** работает в dsh. Навык `/morning` собирает отчёт из Backlog.md, рендерер
+превращает его в интерактивные слайды (на узком экране — мобильную ленту), плагин
+подключает всё к харнессу. Календарь и чаты — по дорожной карте ниже.
+
+## Состав репозитория
+
+| Каталог | Что это |
+|---|---|
+| [`skills/morning`](skills/morning/SKILL.md) | навык `/morning`: ретро, план дня, риски по OKR, статус команд, «Нужны решения»; пишет `.md` + сайдкары `.retro/.today/.risks/.teams.json` и рендерит `.html` |
+| [`skills/mts-link-sync`](skills/mts-link-sync/SKILL.md) | выгрузка чатов MTS.Link (дельта-курсор, read-only) |
+| [`poh-morning-plugin`](poh-morning-plugin/README.md) | плагин DeepSeek Harness: провайдер навыков `skills/` + правило маршрутизации («план на сегодня» → `/morning`) |
+| [`tools/morning-slides`](tools/morning-slides/README.md) | рендерер отчёта в HTML: слайды на десктопе, лента на узком экране, заметки с блочным редактором, «Комментарии для LLM»; юнит + E2E на Playwright |
+| [`tools/calendar-today`](tools/calendar-today/README.md) | созвоны дня из Google-календаря «MTS Exchange» (poh-scheduller), read-only |
+| [`tools/mts-link-sync`](tools/mts-link-sync/README.md) | коннектор MTS.Link (WS, SSO-сессия PO) |
+
+## Как проверить
+
+```sh
+cd poh-morning-plugin && pnpm install && pnpm build && pnpm test      # плагин: 5 тестов
+cd ../tools/morning-slides && python3 -m unittest discover -s test     # рендер: 13 тестов
+node test/e2e.mjs                                                       # E2E: Chromium, 6 сценариев
+cd ../mts-link-sync && npm test                                         # коннектор: офлайн-тесты
+python3 ../calendar-today/today.py --status                             # календарь: диагностика
+```
+
+E2E берёт Chromium из `tools/mts-link-sync/.browsers` (`PLAYWRIGHT_BROWSERS_PATH`);
+без него — `cd tools/mts-link-sync && PLAYWRIGHT_BROWSERS_PATH=$PWD/.browsers npx playwright install chromium`.
 
 ## Ситуация
 
@@ -155,9 +180,9 @@ dry-run (закрыть, перенести срок, создать задач�
 
 **dsh** — плагин [`poh-morning-plugin/`](poh-morning-plugin/README.md): подключает `skills/`
 как отдельный провайдер навыков харнесса и добавляет правило маршрутизации, по которому
-«план на сегодня» / «morning» поднимают навык `/morning`. Сегодня навык `/morning` собирает
-слой 3 (задачи, договорённости, риски, требования, цели) из Backlog.md; слой 1 (каналы)
-подключается по дорожной карте выше.
+«план на сегодня» / «morning» поднимают навык `/morning`. Пошагово — в README плагина.
+Отчёт открывается в панели dsh как мобильная лента; тот же файл на широком экране —
+слайды для руководителя.
 
 **Claude Code и другие IDE-агенты** — по конвенции контура PO: `install.sh` с выбором агента
 синкает `skills/` в нужный корень (не реализовано).
