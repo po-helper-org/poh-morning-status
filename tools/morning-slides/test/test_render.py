@@ -41,10 +41,10 @@ class RetroTest(unittest.TestCase):
         self.assertEqual(out.count('<label class="row" for="event-'), 2)
         self.assertEqual(out.count('<aside class="sheet right note"'), 4)   # панели отрисованы заранее
         self.assertEqual(out.count('type="radio" name="sheet"'), 5)         # 4 строки + sheet-none
-        self.assertIn('<label class="edge" for="retro-note"', out)
-        self.assertIn('<section class="slide" id="retro" data-retro>', out)
+        self.assertIn('<label class="edge" data-color="red" style="top:50%" for="retro-note"', out)
+        self.assertIn('<section class="slide" id="retro" data-widgets data-retro>', out)
         self.assertNotIn('href="#', out)
-        retro = out.split('id="retro" data-retro>')[1].split('</section>')[0]
+        retro = out.split('id="retro" data-widgets data-retro>')[1].split('</section>')[0]
         self.assertNotIn('<table>', retro)
         # название строки — первая строка заметки; без id — только название
         self.assertIn('for="task-0"><span class="check" data-done></span><span class="id">PO-105</span><span class="t">Ишманов + Бордюг: отправить смету за август</span>', out)
@@ -76,9 +76,30 @@ class RetroTest(unittest.TestCase):
         self.assertEqual(out.count('<div class="empty">Данных не найдено</div>'), 2)
         self.assertIn('<h1 class="title">Ретро 2026-09-10</h1>', out)
         self.assertIn('<h2>Что не получилось сделать</h2>', out)
+    def test_today_widgets(self):
+        import json
+        today = json.loads((Path(__file__).parent / "sample.today.json").read_text())
+        out = render(SAMPLE, self.data(), today)
+        self.assertIn('<section class="slide" id="today" data-widgets data-today>', out)
+        self.assertIn('<label class="edge" data-color="green" style="top:38%" for="plan-note"', out)
+        self.assertIn('>План на сегодня</label>', out)
+        self.assertIn('<label class="edge" data-color="blue" style="top:62%" for="today-calendar"', out)
+        self.assertIn('id="today-calendar-sheet"', out)
+        self.assertEqual(out.count('<div class="ev">'), 2)                      # календарь в панели
+        self.assertIn('<div class="tt">VK: бюджет Q4</div>', out)
+        slide = out.split('id="today" data-widgets data-today>')[1].split('</section>')[0]
+        self.assertNotIn('Созвоны', slide)                                      # созвонов на слайде нет
+        self.assertNotIn('<table>', slide)
+        self.assertIn('<h4><span>Задачи</span><span>2</span></h4>', slide)
+        self.assertIn('<h4><span>Договорённости</span><span>1</span></h4>', slide)
+        self.assertIn('for="todo-0"><span class="check" data-priority="high"></span><span class="id">PO-99</span>', slide)
+        self.assertIn('<h1 class="title">План на сегодня 2026-09-11</h1>', out)
+        self.assertEqual(out.count('id="sheet-none"'), 1)
+        self.assertIn('contenteditable="true"', out)                            # правка и без скриптов
     def test_no_json_no_widgets(self):
         out = render(SAMPLE, None)
         self.assertNotIn('id="retro-note-sheet"', out)
+        self.assertNotIn('id="sheet-none"', out)
     def test_md_renderer(self):
         from render import md_to_html
         h = md_to_html("Название\n# T\n- [ ] a\n- [x] b\n\n1. one\n> q\n---\n**b** `c` PO-1", first_is_title=True)

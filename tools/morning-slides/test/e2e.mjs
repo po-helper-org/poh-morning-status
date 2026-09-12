@@ -14,7 +14,13 @@ process.env.PLAYWRIGHT_BROWSERS_PATH ??= resolve(linkSync, '.browsers')
 const { chromium } = createRequire(resolve(linkSync, 'package.json'))('playwright')
 
 const out = resolve(here, 'out', 'demo.html')
-execFileSync('python3', [resolve(here, '..', 'render.py'), resolve(here, 'sample.md'), '-o', out], { stdio: 'inherit' })
+{
+  // сайдкары ищутся рядом с markdown по имени, поэтому собираем комплект в out/
+  const { copyFileSync, mkdirSync } = await import('node:fs')
+  mkdirSync(resolve(here, 'out'), { recursive: true })
+  for (const f of ['sample.md', 'sample.retro.json', 'sample.today.json']) copyFileSync(resolve(here, f), resolve(here, 'out', f.replace('sample', 'demo')))
+}
+execFileSync('python3', [resolve(here, '..', 'render.py'), resolve(here, 'out', 'demo.md'), '-o', out], { stdio: 'inherit' })
 assert.ok(existsSync(out))
 const url = pathToFileURL(out).href
 
@@ -31,9 +37,10 @@ async function scenario(browser, { javaScriptEnabled, viewport = { width: 1200, 
   await page.goto(url)
 
   // 1. На титуле вкладки нет; на слайде ретро — есть.
-  const edge = page.locator('label.edge')
-  assert.equal(await edge.count(), 1, `${label}: одна вкладка`)
+  const edge = page.locator('label.edge[for="retro-note"]')
+  assert.equal(await edge.count(), 1, `${label}: одна вкладка ретро`)
   assert.ok(await edge.evaluate(el => el.closest('.slide').id === 'retro'), `${label}: вкладка внутри слайда ретро`)
+  assert.equal(await page.locator('.slide:first-child label.edge').count(), 0, `${label}: на титуле вкладок нет`)
   await page.locator('#retro').scrollIntoViewIfNeeded()
   await edge.waitFor({ state: 'visible' })
 
@@ -56,6 +63,11 @@ async function scenario(browser, { javaScriptEnabled, viewport = { width: 1200, 
     assert.equal(await drawer.locator('label.lbl-edit, .btn').count(), 0, 'кнопок режима нет')
   } else {
     assert.equal(await drawer.locator('.note-view li.todo input').count(), 3, `${label}: чеклист отрисован`)
+    assert.equal(await drawer.locator('.note-view[contenteditable="true"]').count(), 1, `${label}: без скриптов текст всё равно правится`)
+    await drawer.locator('.note-view h1').click()
+    await page.keyboard.press('End')
+    await page.keyboard.type(' (правка)')
+    assert.match(await drawer.locator('.note-view h1').innerText(), /\(правка\)$/, `${label}: набор без JS`)
   }
   await drawer.locator('.head label[for="retro-note"]').click()
   assert.equal(await visible(page, '#retro-note-sheet'), false, `${label}: заметка закрылась`)
@@ -137,6 +149,53 @@ async function scenario(browser, { javaScriptEnabled, viewport = { width: 1200, 
     assert.match(t, /новый пункт/); assert.match(t, /Итог/)
   }
 
+  // ——— Слайд «Сегодня» ———
+  await page.locator('#today').scrollIntoViewIfNeeded()
+  const plan = page.locator('label.edge[for="plan-note"]')
+  await plan.waitFor({ state: 'visible' })
+  assert.equal(await plan.textContent(), 'План на сегодня', `${label}: зелёная вкладка`)
+  assert.equal(await plan.evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(31, 157, 85)', `${label}: вкладка зелёная`)
+  assert.equal(await page.locator('#today .widgets h4 span:first-child').allTextContents().then(a => a.join('|')), 'Задачи|Договорённости')
+  assert.equal(await page.locator('#today').innerText().then(t => /Созвоны/.test(t)), false, `${label}: созвонов на слайде нет`)
+
+  // 10. «План на сегодня» → заметка с заготовкой; сразу редактируется.
+  await plan.click()
+  assert.equal(await visible(page, '#plan-note-sheet'), true)
+  assert.match(await noteText('#plan-note-sheet .body'), /^План на сегодня 2026-09-11[\s\S]*Задачи[\s\S]*Созвоны[\s\S]*Договорённости[\s\S]*Риски/)
+  const editable = page.locator('#plan-note-sheet .body [contenteditable="true"]')
+  assert.equal(await editable.count(), 1, `${label}: область правки есть сразу`)
+  await editable.click()
+  await page.keyboard.press('End')
+  await page.keyboard.type(' — допечатано')
+  assert.match(await noteText('#plan-note-sheet .body'), /допечатано/, `${label}: текст правится сразу после открытия`)
+  await page.locator('#plan-note-sheet .head label[for="plan-note"]').click()
+  assert.equal(await visible(page, '#plan-note-sheet'), false)
+
+  // 11. «Календарь» → панель с созвонами дня (2), время/тема/участники/повестка.
+  await page.locator('label.edge[for="today-calendar"]').click()
+  assert.equal(await visible(page, '#today-calendar-sheet'), true)
+  assert.equal(await page.locator('#today-calendar-sheet .ev').count(), 2)
+  assert.match(await page.locator('#today-calendar-sheet .ev').first().innerText(), /11:00–11:30[\s\S]*VK: бюджет Q4[\s\S]*Юмшанов[\s\S]*переезд виджета/)
+  await page.locator('#today-calendar-sheet .head label[for="today-calendar"]').click()
+  assert.equal(await visible(page, '#today-calendar-sheet'), false)
+
+  // 12. Задача дня → заметка с шапкой (приоритет, срок), сразу редактируемая.
+  await page.locator('label.row[for="todo-0"]').click()
+  const td = page.locator('#todo-0 ~ aside.sheet')
+  await td.waitFor({ state: 'visible' })
+  assert.match(await noteText('#todo-0 ~ aside.sheet .body'), /^Сетевая доступность для GDS[\s\S]*Источники/)
+  assert.equal(await td.locator('.head .flag[data-p="high"]').count(), 1)
+  assert.match(await td.locator('.head .chip').innerText(), /Вчера/)
+  assert.equal(await td.locator('.body [contenteditable="true"]').count(), 1, `${label}: заметка задачи редактируется сразу`)
+  await td.locator('.head label[for="sheet-none"]').click()
+  await page.locator('label.row[for="ctl-0"]').click()
+  assert.match(await noteText('#ctl-0 ~ aside.sheet .body'), /^Подправить для Музыки баг/)
+  await page.locator('#ctl-0 ~ aside.sheet .head label[for="sheet-none"]').click()
+
+  // 13. Тема едина: слайды тёмные, как панели.
+  const bg = await page.locator('.slide').first().evaluate(el => getComputedStyle(el).backgroundColor)
+  assert.equal(bg, 'rgb(20, 21, 24)', `${label}: слайды тёмные`)
+
   assert.deepEqual(errors, [], `${label}: ошибок в консоли нет`)
   await ctx.close()
   console.log(`ok — ${label}`)
@@ -145,22 +204,27 @@ async function scenario(browser, { javaScriptEnabled, viewport = { width: 1200, 
 async function emptyData(browser) {
   // 7. Пустые данные: «Данных не найдено» в обоих виджетах и в заметке, ничего лишнего.
   const empty = resolve(here, 'out', 'empty.html')
-  const emptyJson = resolve(here, 'out', 'empty.retro.json')
   const emptyMd = resolve(here, 'out', 'empty.md')
   const { writeFileSync, readFileSync } = await import('node:fs')
   writeFileSync(emptyMd, readFileSync(resolve(here, 'sample.md')))
-  writeFileSync(emptyJson, JSON.stringify({ date: '2026-09-10', tasks: [], activity: [] }))
+  writeFileSync(resolve(here, 'out', 'empty.retro.json'), JSON.stringify({ date: '2026-09-10', tasks: [], activity: [] }))
+  writeFileSync(resolve(here, 'out', 'empty.today.json'), JSON.stringify({ date: '2026-09-11', tasks: [], controls: [], calendar: [] }))
   execFileSync('python3', [resolve(here, '..', 'render.py'), emptyMd, '-o', empty], { stdio: 'inherit' })
   const ctx = await browser.newContext({ javaScriptEnabled: false })
   const page = await ctx.newPage()
   await page.goto(pathToFileURL(empty).href)
-  assert.equal(await page.locator('.widget .empty').count(), 2)
+  assert.equal(await page.locator('#retro .widget .empty').count(), 2)
   assert.equal(await page.locator('label.row').count(), 0)
-  await page.locator('label.edge').click()
+  await page.locator('label.edge[for="retro-note"]').click()
   const heads = await page.locator('#retro-note-sheet .note-view h2').allInnerTexts()
   assert.equal(heads.length, 4, 'заготовка ретро есть и без данных')
   assert.equal(await page.locator('#retro-note-sheet .note-view li').count(), 0, 'ничего не придумано')
   assert.equal(await page.locator('#retro-note-sheet .note-view h1.title').innerText(), 'Ретро 2026-09-10')
+  await page.locator('#retro-note-sheet .head label[for="retro-note"]').click()
+  await page.locator('#today').scrollIntoViewIfNeeded()
+  assert.equal(await page.locator('#today .widget .empty').count(), 2)
+  await page.locator('label.edge[for="today-calendar"]').click()
+  assert.equal(await page.locator('#today-calendar-sheet .cal .empty').innerText(), 'Данных не найдено')
   await ctx.close()
   console.log('ok — пустые данные')
 }
