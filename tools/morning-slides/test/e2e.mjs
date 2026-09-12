@@ -127,7 +127,7 @@ async function scenario(browser, { javaScriptEnabled, viewport = { width: 1200, 
 
   // 8. Панель поверх экрана: слайд не ужат, клик по подложке закрывает; затем другая задача; ✕; событие.
   const padOpen = await page.locator('#retro').evaluate(el => getComputedStyle(el).paddingRight)
-  assert.ok(['64px', '20px'].includes(padOpen), `${label}: слайд под панелью не ужат (${padOpen})`)
+  assert.ok(['64px', '20px', '14px'].includes(padOpen), `${label}: слайд под панелью не ужат (${padOpen})`)
   assert.equal(await page.locator('#task-0 ~ .scrim').evaluate(el => getComputedStyle(el).display), 'block', `${label}: подложка показана`)
   await page.mouse.click(30, 760)   // по подложке, мимо панели
   assert.equal(await visible(page, '#task-0 ~ aside.sheet'), false, `${label}: клик по подложке закрыл панель`)
@@ -251,6 +251,86 @@ async function scenario(browser, { javaScriptEnabled, viewport = { width: 1200, 
   console.log(`ok — ${label}`)
 }
 
+async function mobile(browser, { javaScriptEnabled, viewport }) {
+  // Узкий экран (панель dsh / телефон): лента, навигация чипами, карточки в столбик, панели на весь экран.
+  const label = `mobile ${viewport.width}×${viewport.height}, ${javaScriptEnabled ? 'JS включён' : 'JS выключен'}`
+  const ctx = await browser.newContext({ javaScriptEnabled, viewport })
+  const page = await ctx.newPage()
+  const errors = []
+  page.on('pageerror', e => errors.push(String(e)))
+  await page.goto(url)
+
+  // 1. Ничего не уезжает за правый край; слайды — лента без snap; навигация сверху видна.
+  const overflow = await page.evaluate(() => { const d = document.querySelector('.deck'); return d.scrollWidth - d.clientWidth })
+  assert.equal(overflow, 0, `${label}: нет горизонтальной прокрутки`)
+  assert.equal(await page.locator('.deck').evaluate(el => getComputedStyle(el).scrollSnapType), 'none', `${label}: без scroll-snap`)
+  const nav = page.locator('nav.mnav')
+  assert.equal(await nav.evaluate(el => getComputedStyle(el).display), 'flex', `${label}: навигация чипами`)
+  assert.equal(await nav.locator('a').allTextContents().then(a => a.join('|')), '2026-09-11|Ретро|Сегодня|Риски|Live|GDS|Решения')
+  assert.equal(await nav.evaluate(el => getComputedStyle(el).position), 'sticky')
+
+  // 2. Титул сжат: KPI — чипы в ряд; слайд «Сегодня» — виджеты в один столбец, вкладки стали кнопками.
+  assert.equal(await page.locator('#top .kpis').evaluate(el => getComputedStyle(el).display), 'flex')
+  await page.locator('#today').scrollIntoViewIfNeeded()
+  const cols = await page.locator('#today .widgets').evaluate(el => getComputedStyle(el).gridTemplateColumns.split(' ').length)
+  assert.equal(cols, 1, `${label}: один столбец`)
+  const pill = page.locator('label.edge[for="plan-note"]')
+  const box = await pill.boundingBox()
+  assert.ok(box.width > box.height, `${label}: вкладка стала горизонтальной кнопкой`)
+  assert.equal(await pill.evaluate(el => getComputedStyle(el).writingMode), 'horizontal-tb')
+
+  // 3. Строки не ниже 44px, заголовок переносится, а не обрезается.
+  const rows = page.locator('#today label.row')
+  for (let i = 0; i < await rows.count(); i++) {
+    const b = await rows.nth(i).boundingBox()
+    assert.ok(b.height >= 44, `${label}: строка ${i} высотой ${b.height}`)
+  }
+
+  // 4. Таблица историй — карточки с подписями полей; таблица md — карточки с data-label.
+  await page.locator('#team-0').scrollIntoViewIfNeeded()
+  assert.equal(await page.locator('#team-0 .cols-head').evaluate(el => getComputedStyle(el).display), 'none')
+  assert.equal(await page.locator('label.row[for="story-0-0"]').evaluate(el => getComputedStyle(el).display), 'block')
+  assert.match(await page.locator('label.row[for="story-0-0"] .c').first().evaluate(el => getComputedStyle(el, '::before').content), /Что сделано/)
+  const decisionsId = await nav.locator('a', { hasText: 'Решения' }).getAttribute('href')   // раздел из markdown
+  await page.locator(decisionsId).scrollIntoViewIfNeeded()
+  assert.equal(await page.locator(`${decisionsId} ul.decisions li`).count() > 0, true)
+
+  // 5. Панель — на весь экран, шапка прилипает, подложки нет; ✕ закрывает.
+  await page.locator('#today').scrollIntoViewIfNeeded()
+  await page.locator('label.row[for="todo-0"]').click()
+  const sheet = page.locator('#todo-0 ~ aside.sheet')
+  await sheet.waitFor({ state: 'visible' })
+  const sb = await sheet.boundingBox()
+  assert.ok(Math.abs(sb.width - viewport.width) <= 1, `${label}: панель во всю ширину (${sb.width})`)
+  assert.equal(await sheet.locator('.head').evaluate(el => getComputedStyle(el).position), 'sticky')
+  assert.equal(await page.locator('#todo-0 ~ .scrim').evaluate(el => getComputedStyle(el).display), 'none')
+  if (javaScriptEnabled) {
+    // 6. Редактор и «/»-меню работают в узком экране.
+    const ed = sheet.locator('.editor')
+    await ed.locator('> *').last().click()
+    await page.keyboard.press('End'); await page.keyboard.press('Enter'); await page.keyboard.type('/')
+    const menu = sheet.locator('.menu')
+    await menu.waitFor({ state: 'visible' })
+    const mb = await menu.boundingBox()
+    assert.ok(mb.x + mb.width <= viewport.width, `${label}: меню не вылезает за экран`)
+    await menu.locator('button', { hasText: 'Пункт с галочкой' }).click()
+    await page.keyboard.type('мобильный пункт')
+    assert.match(await page.evaluate(() => localStorage.getItem('morning-note-2026-09-11-todo-0')), /- \[ \] мобильный пункт/)
+  }
+  await sheet.locator('.head label[for="sheet-none"]').click()
+  assert.equal(await visible(page, '#todo-0 ~ aside.sheet'), false)
+
+  // 7. Навигация: чип ведёт к разделу.
+  await nav.locator('a', { hasText: 'Риски' }).click()
+  await page.waitForTimeout(300)
+  const risksTop = await page.locator('#risks').evaluate(el => el.getBoundingClientRect().top)
+  assert.ok(risksTop < 120 && risksTop > -50, `${label}: переход к разделу (top=${risksTop})`)
+
+  assert.deepEqual(errors, [], `${label}: ошибок нет`)
+  await ctx.close()
+  console.log(`ok — ${label}`)
+}
+
 async function emptyData(browser) {
   // 7. Пустые данные: «Данных не найдено» в обоих виджетах и в заметке, ничего лишнего.
   const empty = resolve(here, 'out', 'empty.html')
@@ -289,7 +369,9 @@ const browser = await chromium.launch()
 try {
   await scenario(browser, { javaScriptEnabled: true })
   await scenario(browser, { javaScriptEnabled: false })
-  await scenario(browser, { javaScriptEnabled: false, viewport: { width: 700, height: 900 } })
+  await scenario(browser, { javaScriptEnabled: false, viewport: { width: 800, height: 900 } })
+  await mobile(browser, { javaScriptEnabled: true, viewport: { width: 420, height: 900 } })
+  await mobile(browser, { javaScriptEnabled: false, viewport: { width: 390, height: 844 } })
   await emptyData(browser)
 } finally {
   await browser.close()

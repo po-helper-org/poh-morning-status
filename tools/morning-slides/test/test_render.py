@@ -8,7 +8,8 @@ SAMPLE = (Path(__file__).parent / "sample.md").read_text()
 class RenderTest(unittest.TestCase):
     def test_slides_and_kpis(self):
         out = render(SAMPLE)
-        self.assertEqual(out.count('<section class="slide">'), 6)   # титул + 5 разделов
+        self.assertEqual(out.count('<section class="slide" id='), 6)   # титул + 5 разделов, у каждого id
+        self.assertIn('<nav class="mnav"><a href="#top" class="d">2026-09-11</a><a href="#s-2">Ретро</a><a href="#s-3">Сегодня</a><a href="#s-4">Риски</a><a href="#s-5">Команды</a><a href="#s-6">Решения</a></nav>', out)
         self.assertIn('<b>2</b><span>просрочено</span>', out)
         self.assertIn('class="kpi red"><b>6</b>', out)
         self.assertIn('class="kpi"><b>0</b>', out)
@@ -16,7 +17,7 @@ class RenderTest(unittest.TestCase):
         out = render(SAMPLE)
         self.assertIn('<span class="late">−1 д</span>', out)
         self.assertIn('<span class="id">PO-105</span>', out)
-        self.assertIn('<td class="high">HIGH</td>', out)
+        self.assertIn('<td class="high" data-label="Приоритет">HIGH</td>', out)
         self.assertIn('class="nodata"', out)
         self.assertIn('<ul class="decisions">', out)
         self.assertIn('<p class="kr">', out)
@@ -43,7 +44,7 @@ class RetroTest(unittest.TestCase):
         self.assertEqual(out.count('type="radio" name="sheet"'), 5)         # 4 строки + sheet-none
         self.assertIn('<label class="edge" data-color="red" style="top:50%" for="retro-note"', out)
         self.assertIn('<section class="slide" id="retro" data-widgets data-retro>', out)
-        self.assertNotIn('href="#', out)
+        self.assertNotIn('href="#', out.split('</nav>')[1])   # якоря только в навигации, панели — не ссылки
         retro = out.split('id="retro" data-widgets data-retro>')[1].split('</section>')[0]
         self.assertNotIn('<table>', retro)
         # название строки — первая строка заметки; без id — только название
@@ -113,7 +114,7 @@ class RetroTest(unittest.TestCase):
         self.assertIn('<label class="edge" data-color="amber" style="top:50%" for="risks-note"', slide)
         self.assertIn('<span>OKR</span><span>Название</span><span>Последствия</span>', slide)
         self.assertEqual(slide.count('<label class="row cols"'), 3)
-        self.assertIn('<span class="t h"><span class="id">PO-78</span></span><span class="c">Вебхук заказов не работает, ломает CJM у VK</span><span class="c">заказы VK без статуса', slide)
+        self.assertIn('<span class="t h"><span class="id">PO-78</span></span><span class="c" data-label="Название">Вебхук заказов не работает, ломает CJM у VK</span><span class="c" data-label="Последствия">заказы VK без статуса', slide)
         self.assertIn('<span class="t h">—</span>', slide)   # риск без KR
         self.assertIn('<h1 class="title">Вебхук заказов не работает, ломает CJM у VK</h1>', out)
         self.assertIn('<h2>Последствия</h2>', out); self.assertIn('<h2>Источники</h2>', out)
@@ -123,6 +124,7 @@ class RetroTest(unittest.TestCase):
         out = render(SAMPLE, self.data(), None, None, self.load("sample.teams.json"))
         self.assertEqual(out.count(' data-team>'), 2)                          # слайд на команду
         self.assertIn('<h2>Команда Live</h2>', out); self.assertIn('<h2>Команда GDS</h2>', out)
+        self.assertIn('<a href="#team-0">Live</a><a href="#team-1">GDS</a>', out)
         self.assertNotIn('НЕТ ДАННЫХ: историй', out)
         live = out.split('id="team-0" data-widgets data-team>')[1].split('</section>')[0]
         self.assertIn('<span>История</span><span>Что сделано</span><span>Что осталось</span><span>Следующий шаг</span>', live)

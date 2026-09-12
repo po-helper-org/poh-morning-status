@@ -135,6 +135,36 @@ label.row,label.edge,label.ib{cursor:pointer}.sheet.right{right:0;border-left:1p
 .menu button:hover,.menu button[data-active]{background:#26272c}.menu .g{width:22px;color:#8b8f96;font-size:13px;text-align:center}
 @media(max-width:800px){.widgets{grid-template-columns:1fr}.slide{padding:28px 20px}.kpis{grid-template-columns:repeat(2,1fr)}h1{font-size:32px}}
 @media print{.deck{overflow:visible}.slide{page-break-after:always;min-height:auto;border:0}}
+.mnav{display:none}
+/* ——— узкий экран (панель dsh, телефон): лента карточек, навигация чипами сверху, панели на весь экран ——— */
+@media(max-width:760px){
+html,body{height:100dvh;font-size:15px}
+.deck{scroll-snap-type:none;height:100dvh;-webkit-overflow-scrolling:touch}
+.mnav{display:flex;gap:6px;position:sticky;top:0;z-index:35;background:rgba(15,16,18,.94);backdrop-filter:blur(6px);padding:8px 10px;overflow-x:auto;white-space:nowrap;border-bottom:1px solid var(--line);scrollbar-width:none}
+.mnav::-webkit-scrollbar{display:none}
+.mnav a{flex:0 0 auto;padding:6px 11px;border-radius:999px;border:1px solid var(--line);color:var(--ink);text-decoration:none;font-size:13px;line-height:1.2}
+.mnav a.d{font-weight:700;border-color:transparent;padding-left:4px}
+.slide{display:block;min-height:0;scroll-snap-align:none;padding:16px 14px 20px;border-bottom:6px solid var(--bg)}
+.slide>header{margin-bottom:12px;padding-bottom:6px}.slide h2{font-size:20px}.slide .n{display:none}
+#top{padding-top:14px}#top h1{font-size:24px;margin-bottom:2px}#top .sub{font-size:13px;margin-bottom:12px}#top .foot{display:none}
+.kpis{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}.kpis::-webkit-scrollbar{display:none}
+.kpi{flex:0 0 auto;min-width:120px;padding:10px 12px}.kpi b{font-size:24px}.kpi span{font-size:12px}
+.widgets{grid-template-columns:1fr;gap:12px;margin-bottom:12px}.widget.wide{grid-column:auto}
+.row{min-height:48px;padding:10px 12px;flex-wrap:wrap}.row .t{white-space:normal;flex:1 1 60%}.row .m{font-size:12px}.row .ag{font-size:13px}
+.cols-head{display:none!important}
+.row.cols{display:block}.row.cols>span{display:block;white-space:normal}.row.cols .h{font-size:15px;margin-bottom:4px}
+.row.cols .c{font-size:13px;color:#c9ccd2;margin-top:2px}.row.cols .c::before{content:attr(data-label) ": ";color:var(--muted)}
+table,thead,tbody,tr{display:block;width:100%}th{display:none}tr{border:1px solid var(--line);border-radius:8px;margin:0 0 8px;padding:6px 10px;background:var(--soft)}
+td{display:block;border:0;padding:2px 0;font-size:14px}td[data-label]::before{content:attr(data-label) ": ";color:var(--muted);font-size:12px}
+tr:first-child{display:none}
+.edge{position:static;writing-mode:horizontal-tb;transform:none;display:inline-block;border-radius:999px;padding:8px 14px;margin:0 8px 12px 0;font-size:12px;letter-spacing:.04em;top:auto!important}
+.sheet{width:100%;max-width:100%;left:0;right:0;border:0;box-shadow:none}.sheet .head{position:sticky;top:0;background:#111214;z-index:2}
+.scrim{display:none!important}
+.decisions li{font-size:17px;margin:8px 0}
+.nodata{font-size:14px}.foot{padding-top:12px;font-size:13px}
+.editor{font-size:16px}.editor [data-block=title]{font-size:18px}.menu{left:12px!important;right:12px;min-width:0}
+.cal .ev{grid-template-columns:78px 1fr;padding:10px 14px}
+}
 """
 
 JS = r"""
@@ -218,10 +248,11 @@ def inline(text: str) -> str:
     return out
 
 
-def cell(text: str) -> str:
+def cell(text: str, label: str = "") -> str:
     t = text.strip()
     cls = ' class="high"' if t == "HIGH" else ""
-    return f"<td{cls}>{inline(t)}</td>"
+    lab = f' data-label="{html.escape(label)}"' if label else ""
+    return f"<td{cls}{lab}>{inline(t)}</td>"
 
 
 def strip_frontmatter(lines: list[str]) -> list[str]:
@@ -253,7 +284,8 @@ def render_body(lines: list[str]) -> str:
             body = [r for r in rows[2:]] if len(rows) > 1 and set(rows[1].replace("|", "").strip()) <= set("-: ") else rows[1:]
             out.append("<table><tr>" + "".join(f"<th>{inline(h.strip())}</th>" for h in head) + "</tr>")
             for r in body:
-                out.append("<tr>" + "".join(cell(c) for c in r.strip().strip("|").split("|")) + "</tr>")
+                cells = r.strip().strip("|").split("|")
+                out.append("<tr>" + "".join(cell(c, head[j].strip() if j < len(head) else "") for j, c in enumerate(cells)) + "</tr>")
             out.append("</table>")
         elif line.startswith("- "):
             items = []
@@ -414,6 +446,19 @@ def note_title(note: str) -> str:
     return note.strip().splitlines()[0].lstrip("# ").strip()
 
 
+def nav_label(name: str) -> str:
+    """Короткая подпись раздела для мобильной навигации."""
+    base = name.split(" — ")[0].strip()
+    rules = [("Ретро", "Ретро"), ("Сегодня", "Сегодня"), ("Ближайшие договорённости", "Договорённости"), ("Риски", "Риски"),
+             ("Статус по командам", "Команды"), ("Нужны решения", "Решения")]
+    for prefix, label in rules:
+        if base.startswith(prefix):
+            return label
+    if base.startswith("Команда "):
+        return base[len("Команда "):]
+    return base[:16]
+
+
 def resolve_today(data: dict, fallback_shift: int) -> tuple[str, str]:
     """(дата данных, «сегодня» для чипов). Ретро: today = date + 1, сегодня: today = date."""
     date = data.get("date", "")
@@ -507,13 +552,16 @@ def compose_note(item: dict, title_key: str, sections: list[tuple[str, str]]) ->
     return "\n".join(lines).strip() + "\n"
 
 
-def table_rows(prefix: str, items: list[dict], notes: list[str], cols: list[str], widths: str, date: str, today: str, heads: list[str]) -> list[str]:
-    """Табличные строки виджета: каждая — label с колонками, клик открывает заметку."""
+def table_rows(prefix: str, items: list[dict], notes: list[str], cols: list[str], widths: str, date: str, today: str, heads: list[str], labels: list[str] | None = None) -> list[str]:
+    """Табличные строки виджета: каждая — label с колонками, клик открывает заметку.
+    `labels` — подписи колонок: на узком экране колонки складываются в строки «подпись: значение»."""
     rows = []
+    labels = labels or [""] * len(cols)
     for i, (it, note, head) in enumerate(zip(items, notes, heads)):
         rid = f"{prefix}-{i}"
         cells = "".join(
-            f'<span class="{"t h" if j == 0 else "c"}">{inline(str(it.get(c, "") or "—"))}</span>' for j, c in enumerate(cols)
+            f'<span class="{"t h" if j == 0 else "c"}"{f" data-label=\"{html.escape(labels[j])}\"" if j and labels[j] else ""}>{inline(str(it.get(c, "") or "—"))}</span>'
+            for j, c in enumerate(cols)
         )
         rows.append(item(rid, cells, note_panel(f"{date}-{rid}", "right", note, "sheet-none", rid, head)).replace(
             '<label class="row" for=', f'<label class="row cols" style="grid-template-columns:{widths}" for=', 1))
@@ -586,7 +634,7 @@ def risks_block(data: dict) -> tuple[str, str]:
     notes = [compose_note(r, "title", [("description", "Описание"), ("consequence", "Последствия"), ("owner", "Владелец"), ("status", "Статус")]) for r in risks]
     validate_notes({"risks": [{"note": n} for n in notes]}, ("risks",))
     heads = [head_chips({"priority": r.get("priority"), "due": r.get("due")}, today) if (r.get("priority") or r.get("due")) else "" for r in risks]
-    rows = table_rows("risk", risks, notes, ["kr", "title", "consequence"], "1fr 2fr 2fr", date, today, heads)
+    rows = table_rows("risk", risks, notes, ["kr", "title", "consequence"], "1fr 2fr 2fr", date, today, heads, ["OKR", "Название", "Последствия"])
     note = data.get("review_draft") or ""
     if not note.strip():
         note = f"Актуализация рисков {date}\n## Новые\n\n## Изменились\n\n## Сняты\n\n## Нужно решение\n"
@@ -627,7 +675,7 @@ def teams_blocks(data: dict) -> list[tuple[str, str, str]]:
         notes = [compose_note(st, "story", [("done", "Что сделано"), ("left", "Что осталось"), ("blockers", "Блокаторы"), ("next_text", "Следующий шаг"), ("pulse", "Пульс спринта")]) for st in stories]
         validate_notes({"stories": [{"note": n} for n in notes]}, ("stories",))
         heads = [head_chips({"due": (st.get("next") or {}).get("date") if isinstance(st.get("next"), dict) else "", "priority": st.get("priority")}, today) for st in stories]
-        rows = table_rows(f"story-{k}", stories, notes, ["story", "done", "left", "next_text"], "1.6fr 1.4fr 1.4fr 1.6fr", date, today, heads)
+        rows = table_rows(f"story-{k}", stories, notes, ["story", "done", "left", "next_text"], "1.6fr 1.4fr 1.4fr 1.6fr", date, today, heads, ["История", "Что сделано", "Что осталось", "Следующий шаг"])
         comment = team.get("comment_draft") or ""
         if not comment.strip():
             comment = f"Комментарий по команде {name} {date}\n" + team_summary(team)
@@ -701,6 +749,7 @@ def render(md: str, retro: dict | None = None, today: dict | None = None, risks:
         f'<div class="kpis">{cards}</div><div class="foot">Стрелки или прокрутка — следующий слайд. {total} слайдов.</div></section>'
     )
     chrome = ""
+    nav: list[tuple[str, str]] = []
     for n, (name, body) in enumerate(sections, start=2):
         cls = ' class="decisions"' if name.startswith("Нужны решения") else ""
         inner = render_body(body)
@@ -724,13 +773,21 @@ def render(md: str, retro: dict | None = None, today: dict | None = None, risks:
             name, inner, extra = team_slides[k]
             chrome += extra
             attr = f' id="team-{k}" data-widgets data-team'
+        if ' id="' not in attr:
+            attr = f' id="s-{n}"' + attr
+        nav.append((re.search(r'id="([^"]+)"', attr).group(1), nav_label(name)))
         slides.append(
             f'<section class="slide"{attr}><header><h2>{inline(name)}</h2><span class="n">{n} / {total}</span></header>{inner}</section>'
         )
+    navbar = '<nav class="mnav"><a href="#top" class="d">' + html.escape(title.replace("Утро ", "")) + "</a>" + "".join(
+        f'<a href="#{i}">{html.escape(l)}</a>' for i, l in nav
+    ) + "</nav>"
+    slides[0] = slides[0].replace('<section class="slide">', '<section class="slide" id="top">', 1)
     return (
         "<!doctype html>\n<html lang=\"ru\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">"
         f"<title>{html.escape(title)}</title><style>{CSS}</style></head><body>"
         "<noscript><div class=\"nojs\">Скрипты отключены: заметки только для чтения, правка и меню «/» недоступны. Откройте файл в Safari или Chrome.</div></noscript><div class=\"deck\">\n"
+        + navbar + "\n"
         + "\n".join(slides)
         + ("\n</div><input class=\"toggle\" type=\"radio\" name=\"sheet\" id=\"sheet-none\" checked>" if chrome else "\n</div>")
         + f"{chrome}<script>{JS}</script></body></html>\n"
