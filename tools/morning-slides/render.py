@@ -83,13 +83,14 @@ code{font-family:ui-monospace,Menlo,monospace;font-size:14px;background:var(--so
 .widget .cols-head{display:grid;gap:14px;padding:8px 14px;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;border-top:1px solid var(--line)}
 .row .ag{display:block;color:var(--muted);font-size:13px;white-space:normal;margin-top:2px}
 .edge:hover{filter:brightness(1.15)}
-.sheet{position:fixed;top:0;bottom:0;width:440px;max-width:96vw;display:none;flex-direction:column;z-index:44;background:#111214;color:#f0f0f2;box-shadow:0 0 24px rgba(0,0,0,.35);font-size:15px}
+.sheet{position:fixed;top:0;bottom:0;width:440px;max-width:92vw;display:none;flex-direction:column;z-index:44;background:#111214;color:#f0f0f2;box-shadow:0 0 24px rgba(0,0,0,.35);font-size:15px}
 .toggle{position:absolute;opacity:0;width:0;height:0;pointer-events:none}
 .toggle:checked~.sheet{display:flex}
 .item{display:contents}
 /* открытая панель не накрывает виджеты: слайд ретро ужимается на её ширину */
-.slide[data-widgets]:has(.toggle:checked:not(#sheet-none)){padding-right:calc(64px + 440px)}
-body:has(.left-toggle:checked) .slide[data-widgets]{padding-left:calc(64px + 440px)}
+/* панель поверх экрана: подложка закрывает её кликом, задний слайд не меняется */
+.scrim{display:none;position:fixed;inset:0;z-index:43;background:rgba(0,0,0,.45);cursor:pointer}
+.toggle:checked~.scrim{display:block}
 label.row,label.edge,label.ib{cursor:pointer}.sheet.right{right:0;border-left:1px solid #2a2b2f}.sheet.left{left:0;border-right:1px solid #2a2b2f}
 .sheet .head{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid #2a2b2f}
 .sheet .body{flex:1;overflow-y:auto;padding:14px 18px}
@@ -393,6 +394,7 @@ def note_panel(key: str, side: str, text: str, close_for: str, row: str = "", he
     return (
         f'<aside class="sheet {side} note" role="dialog" data-key="{html.escape(key)}"{f" data-row=\"{row}\"" if row else ""}>'
         f'<div class="head">{head}<span style="flex:1"></span>'
+        '<noscript><span class="chip" style="color:#e0a538;font-size:12px" title="Откройте файл в Safari или Chrome">без скриптов: только текст, меню «/» недоступно</span></noscript>'
         f'<label class="ib" for="{close_for}" role="button" aria-label="закрыть">&#10005;</label></div>'
         f'<div class="body"><textarea class="src" hidden>{payload}</textarea>'
         f'<div class="note-view md" contenteditable="true" spellcheck="false">{md_to_html(text, first_is_title=True)}</div></div>'
@@ -404,7 +406,7 @@ def item(input_id: str, row: str, sheet: str) -> str:
     """Строка виджета + её панель: скрытый radio, label-строка, панель — без JS и без переходов."""
     return (
         f'<div class="item"><input class="toggle" type="radio" name="sheet" id="{input_id}">'
-        f'<label class="row" for="{input_id}">{row}</label>{sheet}</div>'
+        f'<label class="row" for="{input_id}">{row}</label><label class="scrim" for="sheet-none" aria-hidden="true"></label>{sheet}</div>'
     )
 
 
@@ -454,7 +456,7 @@ def edge_note(edge_id: str, label: str, color: str, top: str, key: str, text: st
     """Вкладка на краю слайда + левая панель-заметка (checkbox-hack)."""
     tab = f'<label class="edge" data-color="{color}" style="top:{top}" for="{edge_id}" role="button">{html.escape(label)}</label>'
     sheet = (
-        f'<div class="item"><input class="toggle left-toggle" type="checkbox" id="{edge_id}">'
+        f'<div class="item"><input class="toggle left-toggle" type="checkbox" id="{edge_id}"><label class="scrim" for="{edge_id}" aria-hidden="true"></label>'
         + note_panel(key, "left", text, edge_id, "", head).replace('class="sheet left note"', f'class="sheet left note" id="{edge_id}-sheet"')
         + "</div>"
     )
@@ -473,7 +475,7 @@ def calendar_sheet(edge_id: str, label: str, top: str, date: str, events: list[d
         for e in events
     ) or f'<div class="empty">{NOT_FOUND}</div>'
     sheet = (
-        f'<div class="item"><input class="toggle left-toggle" type="checkbox" id="{edge_id}">'
+        f'<div class="item"><input class="toggle left-toggle" type="checkbox" id="{edge_id}"><label class="scrim" for="{edge_id}" aria-hidden="true"></label>'
         f'<aside class="sheet left" role="dialog" id="{edge_id}-sheet" aria-label="{html.escape(label)}">'
         f'<div class="head"><span class="chip">&#128197; {html.escape(date)}</span><span class="chip">{len(events)} созвон.</span><span style="flex:1"></span>'
         f'<label class="ib" for="{edge_id}" role="button" aria-label="закрыть">&#10005;</label></div>'

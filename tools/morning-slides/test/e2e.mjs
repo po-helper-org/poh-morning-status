@@ -82,7 +82,7 @@ async function scenario(browser, { javaScriptEnabled, viewport = { width: 1200, 
   assert.match(t0, /Источники[\s\S]*backlog\/tasks\/po-105/, `${label}: источники внутри заметки`)
   assert.equal(await sheet0.locator('div.src, .lbl-edit').count(), 0, `${label}: отдельного блока источника и кнопок режима нет`)
   assert.equal(await sheet0.locator('.head .check[data-done]').count(), 1, `${label}: чек в шапке`)
-  assert.match(await sheet0.locator('.head .chip').innerText(), /Вчера/, `${label}: дата в шапке`)
+  assert.match(await sheet0.locator('.head .chip').first().innerText(), /Вчера/, `${label}: дата в шапке`)
   assert.equal(await sheet0.locator('.head .flag[data-p="high"]').count(), 1, `${label}: флаг приоритета`)
   if (!javaScriptEnabled) assert.match(await page.locator('noscript').innerText().catch(() => ''), /Скрипты отключены|^$/)
 
@@ -125,11 +125,15 @@ async function scenario(browser, { javaScriptEnabled, viewport = { width: 1200, 
     assert.match(await page.evaluate(() => localStorage.getItem('morning-note-2026-09-10-task-0')), /\n## Итог$/, 'заголовок через «## »')
   }
 
-  // 8. Другая задача закрывает первую; ✕ закрывает; событие — заметка с итогом и источниками.
+  // 8. Панель поверх экрана: слайд не ужат, клик по подложке закрывает; затем другая задача; ✕; событие.
+  const padOpen = await page.locator('#retro').evaluate(el => getComputedStyle(el).paddingRight)
+  assert.ok(['64px', '20px'].includes(padOpen), `${label}: слайд под панелью не ужат (${padOpen})`)
+  assert.equal(await page.locator('#task-0 ~ .scrim').evaluate(el => getComputedStyle(el).display), 'block', `${label}: подложка показана`)
+  await page.mouse.click(30, 760)   // по подложке, мимо панели
+  assert.equal(await visible(page, '#task-0 ~ aside.sheet'), false, `${label}: клик по подложке закрыл панель`)
   await page.locator('label.row[for="task-1"]').click()
   const sheet1 = page.locator('#task-1 ~ aside.sheet')
   await sheet1.waitFor({ state: 'visible' })
-  assert.equal(await visible(page, '#task-0 ~ aside.sheet'), false, `${label}: первая панель закрыта`)
   assert.match(await noteText('#task-1 ~ aside.sheet .body'), /^Заведены 5 инициатив/, `${label}: задача без id`)
   await sheet1.locator('.head label[for="sheet-none"]').click()
   assert.equal(await visible(page, '#task-1 ~ aside.sheet'), false, `${label}: панель закрыта крестиком`)
@@ -185,7 +189,7 @@ async function scenario(browser, { javaScriptEnabled, viewport = { width: 1200, 
   await td.waitFor({ state: 'visible' })
   assert.match(await noteText('#todo-0 ~ aside.sheet .body'), /^Сетевая доступность для GDS[\s\S]*Источники/)
   assert.equal(await td.locator('.head .flag[data-p="high"]').count(), 1)
-  assert.match(await td.locator('.head .chip').innerText(), /Вчера/)
+  assert.match(await td.locator('.head .chip').first().innerText(), /Вчера/)
   assert.equal(await td.locator('.body [contenteditable="true"]').count(), 1, `${label}: заметка задачи редактируется сразу`)
   await td.locator('.head label[for="sheet-none"]').click()
   await page.locator('label.row[for="ctl-0"]').click()
