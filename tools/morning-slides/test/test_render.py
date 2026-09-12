@@ -8,7 +8,7 @@ SAMPLE = (Path(__file__).parent / "sample.md").read_text()
 class RenderTest(unittest.TestCase):
     def test_slides_and_kpis(self):
         out = render(SAMPLE)
-        self.assertEqual(out.count('<section class="slide">'), 5)   # титул + 4 раздела
+        self.assertEqual(out.count('<section class="slide">'), 6)   # титул + 5 разделов
         self.assertIn('<b>2</b><span>просрочено</span>', out)
         self.assertIn('class="kpi red"><b>6</b>', out)
         self.assertIn('class="kpi"><b>0</b>', out)
@@ -90,12 +90,52 @@ class RetroTest(unittest.TestCase):
         slide = out.split('id="today" data-widgets data-today>')[1].split('</section>')[0]
         self.assertNotIn('Созвоны', slide)                                      # созвонов на слайде нет
         self.assertNotIn('<table>', slide)
-        self.assertIn('<h4><span>Задачи</span><span>2</span></h4>', slide)
+        self.assertIn('<h4><span>Мои задачи</span><span>2</span></h4>', slide)
         self.assertIn('<h4><span>Договорённости</span><span>1</span></h4>', slide)
         self.assertIn('for="todo-0"><span class="check" data-priority="high"></span><span class="id">PO-99</span>', slide)
         self.assertIn('<h1 class="title">План на сегодня 2026-09-11</h1>', out)
         self.assertEqual(out.count('id="sheet-none"'), 1)
         self.assertIn('contenteditable="true"', out)                            # правка и без скриптов
+    def load(self, name):
+        import json
+        return json.loads((Path(__file__).parent / name).read_text())
+    def test_key_meetings(self):
+        out = render(SAMPLE, self.data(), self.load("sample.today.json"))
+        slide = out.split('id="today" data-widgets data-today>')[1].split('</section>')[0]
+        self.assertIn('<h4><span>Мои задачи</span>', slide)
+        self.assertIn('<h4><span>Ключевые встречи</span><span>1</span></h4>', slide)   # дейлик (ритуал) не попал
+        self.assertIn('VK: бюджет Q4', slide); self.assertNotIn('Дейлик GDS/Live', slide)
+        self.assertIn('<span class="ag">Бюджет под переезд виджета', slide)
+        self.assertIn('<h2>Что получить</h2>', out)
+    def test_risks_slide(self):
+        out = render(SAMPLE, self.data(), None, self.load("sample.risks.json"))
+        slide = out.split('id="risks" data-widgets data-risks>')[1].split('</section>')[0]
+        self.assertIn('<label class="edge" data-color="amber" style="top:50%" for="risks-note"', slide)
+        self.assertIn('<span>OKR</span><span>Название</span><span>Последствия</span>', slide)
+        self.assertEqual(slide.count('<label class="row cols"'), 3)
+        self.assertIn('<span class="t h"><span class="id">PO-78</span></span><span class="c">Вебхук заказов не работает, ломает CJM у VK</span><span class="c">заказы VK без статуса', slide)
+        self.assertIn('<span class="t h">—</span>', slide)   # риск без KR
+        self.assertIn('<h1 class="title">Вебхук заказов не работает, ломает CJM у VK</h1>', out)
+        self.assertIn('<h2>Последствия</h2>', out); self.assertIn('<h2>Источники</h2>', out)
+        self.assertIn('<h1 class="title">Актуализация рисков 2026-09-11</h1>', out)
+        self.assertIn('<h2>Нужно решение</h2>', out)
+    def test_team_slides(self):
+        out = render(SAMPLE, self.data(), None, None, self.load("sample.teams.json"))
+        self.assertEqual(out.count(' data-team>'), 2)                          # слайд на команду
+        self.assertIn('<h2>Команда Live</h2>', out); self.assertIn('<h2>Команда GDS</h2>', out)
+        self.assertNotIn('НЕТ ДАННЫХ: историй', out)
+        live = out.split('id="team-0" data-widgets data-team>')[1].split('</section>')[0]
+        self.assertIn('<span>История</span><span>Что сделано</span><span>Что осталось</span><span>Следующий шаг</span>', live)
+        self.assertIn('2026-09-15 · проверить долю ошибок &lt; 0.5% в Grafana · Юмшанов', live)
+        self.assertIn('for="team-0-comment"', live); self.assertIn('for="team-0-agree"', live)
+        self.assertIn('<h1 class="title">Комментарий по команде Live 2026-09-11</h1>', out)
+        self.assertIn('Какие есть блокаторы: ждём спецификацию TicketsCloud', out)
+        self.assertIn('<h1 class="title">Договорённости с командой Live</h1>', out)
+        self.assertIn('checked><span>доступ к логам MRS · от Новиков · 2026-09-12 · для команда Live</span>', out)
+        self.assertIn('<input type="checkbox"><span>схема БД Live.Процессинг · от Юмшанов · 2026-09-15 · для Ишманов</span>', out)
+        self.assertIn('<h1 class="title"><span class="id">PO-133</span> Переключение 50/50 на Live.Процессинг</h1>', out)
+        self.assertIn('<h2>Пульс спринта</h2>', out)
+        self.assertIn('Команда Live · Команда GDS', out.split('class="sub">')[1].split('<')[0])
     def test_no_json_no_widgets(self):
         out = render(SAMPLE, None)
         self.assertNotIn('id="retro-note-sheet"', out)

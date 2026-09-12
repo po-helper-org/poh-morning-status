@@ -1,0 +1,89 @@
+{
+  "date": "2026-09-11",
+  "sprint": "2026Q3-S5",
+  "teams": [
+    {
+      "name": "Live",
+      "comment_draft": "",
+      "agreements_draft": "",
+      "agreements": [
+        {
+          "what": "схема БД Live.Процессинг",
+          "from": "Юмшанов",
+          "when": "2026-09-15",
+          "to": "Ишманов",
+          "done": false
+        },
+        {
+          "what": "доступ к логам MRS",
+          "from": "Новиков",
+          "when": "2026-09-12",
+          "to": "команда Live",
+          "done": true
+        }
+      ],
+      "stories": [
+        {
+          "id": "PO-133",
+          "title": "Переключение 50/50 на Live.Процессинг",
+          "kr": "PO-36",
+          "priority": "high",
+          "done": "раскатано на 50% трафика, ошибок 0.3%",
+          "left": "мониторинг 3 дня, решение о 100%",
+          "blockers": "нет",
+          "next": {
+            "date": "2026-09-15",
+            "text": "проверить долю ошибок < 0.5% в Grafana",
+            "who": "Юмшанов"
+          },
+          "pulse": [
+            "[Факт] 10.09 раскатка 50%",
+            "[След. шаг] 15.09 решение о 100%"
+          ],
+          "sources": [
+            "Backlog.md: backlog/tasks/po-133, sprint:2026Q3-S5, team:Live",
+            "комментарии задачи 10.09"
+          ]
+        },
+        {
+          "id": "PO-134",
+          "title": "Каталог TC на витрине TL",
+          "kr": "PO-43",
+          "done": "—",
+          "left": "интеграция каталога, тесты",
+          "blockers": "ждём спецификацию TicketsCloud",
+          "next": {
+            "date": "2026-09-16",
+            "text": "спека получена? если нет — эскалация",
+            "who": "Ишманов"
+          },
+          "sources": [
+            "Backlog.md: backlog/tasks/po-134, sprint:2026Q3-S5, team:Live"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "GDS",
+      "agreements": [],
+      "stories": [
+        {
+          "id": "PO-135",
+          "title": "Алертинг UJM виджета",
+          "kr": "PO-78",
+          "done": "алерты на открытие и бронь",
+          "left": "оплата, билет",
+          "blockers": "нет",
+          "next": {
+            "date": "2026-09-13",
+            "text": "показать алерты на дейлике",
+            "who": "Новиков"
+          },
+          "sources": [
+            "Backlog.md: backlog/tasks/po-135, sprint:2026Q3-S5, team:GDS"
+          ]
+        }
+      ]
+    }
+  ]
+}

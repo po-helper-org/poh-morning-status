@@ -1,0 +1,45 @@
+{
+  "date": "2026-09-11",
+  "review_draft": "",
+  "risks": [
+    {
+      "id": "PO-112",
+      "kr": "PO-78",
+      "title": "Вебхук заказов не работает, ломает CJM у VK",
+      "consequence": "заказы VK без статуса, ручная сверка, срыв 20.09",
+      "description": "Фикс от 09.09 не сработал. Повтор на неделе (PO-103).",
+      "owner": "— (не назначен)",
+      "status": "открыт, HIGH",
+      "priority": "high",
+      "sources": [
+        "Backlog.md: backlog/tasks/po-112, okr-kind:risk, okr-kr:PO-78",
+        "транскрипт встречи 09.09.2026"
+      ]
+    },
+    {
+      "id": "PO-114",
+      "kr": "PO-78",
+      "title": "VK не понимает бюджет Q4 под переезд виджета",
+      "consequence": "переезд виджета не финансируется в Q4",
+      "description": "Вопросы VK по бюджету — PO-100, срок 30.09.",
+      "owner": "— (не назначен)",
+      "status": "открыт, HIGH",
+      "priority": "high",
+      "sources": [
+        "Backlog.md: backlog/tasks/po-114, okr-kind:risk"
+      ]
+    },
+    {
+      "id": "PO-133",
+      "kr": "",
+      "title": "Промокод сгорает при неоплаченной брони",
+      "consequence": "жалобы покупателей, возвраты по шлюзовым мероприятиям",
+      "description": "Без привязки к KR.",
+      "owner": "—",
+      "status": "открыт",
+      "sources": [
+        "Backlog.md: backlog/tasks/po-133, createdAt 2026-09-11"
+      ]
+    }
+  ]
+}

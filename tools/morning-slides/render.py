@@ -76,7 +76,12 @@ code{font-family:ui-monospace,Menlo,monospace;font-size:14px;background:var(--so
 .check[data-priority=high]{border-color:var(--red)}.check[data-priority=medium]{border-color:var(--blue)}
 /* вкладки на левом краю слайда: видны только на своём слайде */
 .edge{position:absolute;left:0;z-index:40;text-decoration:none;display:block;box-sizing:border-box;writing-mode:vertical-rl;transform:rotate(180deg);background:var(--red);color:#fff;border:0;padding:16px 8px;font:600 13px/1 -apple-system,"Segoe UI",Roboto,sans-serif;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;border-radius:0 6px 6px 0}
-.edge[data-color=green]{background:var(--green)}.edge[data-color=blue]{background:var(--blue)}
+.edge[data-color=green]{background:var(--green)}.edge[data-color=blue]{background:var(--blue)}.edge[data-color=amber]{background:#b8860b}.edge[data-color=gray]{background:#4b4f58}
+.widgets.one{grid-template-columns:1fr}.widget.wide{grid-column:1/-1}
+.row.cols{display:grid;align-items:start;gap:14px}.row.cols>span{white-space:normal;overflow:hidden}
+.row.cols .c{color:#c9ccd2;font-size:14px}.row.cols .h{font-weight:600}
+.widget .cols-head{display:grid;gap:14px;padding:8px 14px;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;border-top:1px solid var(--line)}
+.row .ag{display:block;color:var(--muted);font-size:13px;white-space:normal;margin-top:2px}
 .edge:hover{filter:brightness(1.15)}
 .sheet{position:fixed;top:0;bottom:0;width:440px;max-width:96vw;display:none;flex-direction:column;z-index:44;background:#111214;color:#f0f0f2;box-shadow:0 0 24px rgba(0,0,0,.35);font-size:15px}
 .toggle{position:absolute;opacity:0;width:0;height:0;pointer-events:none}
@@ -477,6 +482,51 @@ def calendar_sheet(edge_id: str, label: str, top: str, date: str, events: list[d
     return tab, sheet
 
 
+def compose_note(item: dict, title_key: str, sections: list[tuple[str, str]]) -> str:
+    """Заметка из полей: первая строка — название, разделы по ключам, «Источники» из sources.
+    Если у элемента уже есть `note` — берётся как есть."""
+    if item.get("note"):
+        return item["note"]
+    lines = [str(item.get(title_key, "")).strip()]
+    for key, heading in sections:
+        val = item.get(key)
+        if not val:
+            continue
+        lines.append(f"## {heading}")
+        if isinstance(val, list):
+            lines.extend(f"- {v}" for v in val)
+        else:
+            lines.append(str(val))
+        lines.append("")
+    src = item.get("sources") or []
+    if src:
+        lines.append("## Источники")
+        lines.extend(f"- {v}" for v in src)
+    return "\n".join(lines).strip() + "\n"
+
+
+def table_rows(prefix: str, items: list[dict], notes: list[str], cols: list[str], widths: str, date: str, today: str, heads: list[str]) -> list[str]:
+    """Табличные строки виджета: каждая — label с колонками, клик открывает заметку."""
+    rows = []
+    for i, (it, note, head) in enumerate(zip(items, notes, heads)):
+        rid = f"{prefix}-{i}"
+        cells = "".join(
+            f'<span class="{"t h" if j == 0 else "c"}">{inline(str(it.get(c, "") or "—"))}</span>' for j, c in enumerate(cols)
+        )
+        rows.append(item(rid, cells, note_panel(f"{date}-{rid}", "right", note, "sheet-none", rid, head)).replace(
+            '<label class="row" for=', f'<label class="row cols" style="grid-template-columns:{widths}" for=', 1))
+    return rows
+
+
+def cols_head(names: list[str], widths: str) -> str:
+    return f'<div class="cols-head" style="grid-template-columns:{widths}">' + "".join(f"<span>{html.escape(n)}</span>" for n in names) + "</div>"
+
+
+def table_widget(title: str, names: list[str], widths: str, rows: list[str]) -> str:
+    body = (cols_head(names, widths) + "".join(rows)) if rows else f'<div class="empty">{NOT_FOUND}</div>'
+    return f'<div class="widget wide"><h4><span>{html.escape(title)}</span><span>{len(rows)}</span></h4>{body}</div>'
+
+
 def retro_block(data: dict) -> tuple[str, str]:
     """Слайд ретро: Activity/Tasks с заметками, вкладка «Описать ретро» (красная)."""
     validate_notes(data, ("tasks", "activity"))
@@ -504,11 +554,103 @@ def today_block(data: dict) -> tuple[str, str]:
     elif not plan.lstrip().startswith("План"):
         plan = f"План на сегодня {date}\n" + plan
     tab1, sheet1 = edge_note("plan-note", "План на сегодня", "green", "38%", f"{date}-plan", plan, head_chips({"due": date}, today))
-    tab2, sheet2 = calendar_sheet("today-calendar", "Календарь", "62%", date, data.get("calendar", []))
-    return tab1 + tab2 + f'<div class="widgets">{widget("Задачи", tasks)}{widget("Договорённости", controls)}</div>', sheet1 + sheet2
+    calendar = data.get("calendar", [])
+    tab2, sheet2 = calendar_sheet("today-calendar", "Календарь", "62%", date, calendar)
+    # ключевые встречи — созвоны с key: true (не ритуалы): время, тема, повестка; клик — заметка
+    key_events = [e for e in calendar if e.get("key")]
+    for e in key_events:
+        e.setdefault("note", compose_note(e, "title", [("agenda", "Повестка"), ("goal", "Что получить")]))
+        if "## Источники" not in e["note"] and e.get("source"):
+            e["note"] += f"\n## Источники\n- {e['source']}\n"
+    validate_notes({"meetings": key_events}, ("meetings",))
+    meetings = []
+    for i, e in enumerate(key_events):
+        rid = f"meet-{i}"
+        label = (f'<span class="m">{html.escape(e.get("start", ""))}{"–" + html.escape(e["end"]) if e.get("end") else ""}</span>'
+                 f'<span class="t">{html.escape(e.get("title", ""))}'
+                 + (f'<span class="ag">{html.escape(e["agenda"])}</span>' if e.get("agenda") else "") + '</span>'
+                 f'<span class="m">{html.escape(", ".join(e.get("with", [])[:2]))}</span>')
+        meetings.append(item(rid, label, note_panel(f"{date}-{rid}", "right", e["note"], "sheet-none", rid,
+                                                   head_chips({"due": date, "start": e.get("start", ""), "end": e.get("end", "")}, today))))
+    widgets = (f'<div class="widgets">{widget("Мои задачи", tasks)}{widget("Договорённости", controls)}'
+               + widget("Ключевые встречи", meetings).replace('class="widget"', 'class="widget wide"', 1) + "</div>")
+    return tab1 + tab2 + widgets, sheet1 + sheet2
 
 
-def render(md: str, retro: dict | None = None, today: dict | None = None) -> str:
+def risks_block(data: dict) -> tuple[str, str]:
+    """Слайд рисков: таблица OKR · Название · Последствия, клик — описание; слева «Актуализация рисков»."""
+    date, today = resolve_today(data, 0)
+    risks = data.get("risks", [])
+    notes = [compose_note(r, "title", [("description", "Описание"), ("consequence", "Последствия"), ("owner", "Владелец"), ("status", "Статус")]) for r in risks]
+    validate_notes({"risks": [{"note": n} for n in notes]}, ("risks",))
+    heads = [head_chips({"priority": r.get("priority"), "due": r.get("due")}, today) if (r.get("priority") or r.get("due")) else "" for r in risks]
+    rows = table_rows("risk", risks, notes, ["kr", "title", "consequence"], "1fr 2fr 2fr", date, today, heads)
+    note = data.get("review_draft") or ""
+    if not note.strip():
+        note = f"Актуализация рисков {date}\n## Новые\n\n## Изменились\n\n## Сняты\n\n## Нужно решение\n"
+    elif not note.lstrip().startswith("Актуализация"):
+        note = f"Актуализация рисков {date}\n" + note
+    tab, sheet = edge_note("risks-note", "Актуализация рисков", "amber", "50%", f"{date}-risks", note, head_chips({"due": date}, today))
+    return tab + f'<div class="widgets one">{table_widget("Риски по OKR", ["OKR", "Название", "Последствия"], "1fr 2fr 2fr", rows)}</div>', sheet
+
+
+def team_summary(team: dict) -> str:
+    """Сводный текст по историям команды — умолчание заметки «Комментарий»."""
+    lines = []
+    for st in team.get("stories", []):
+        lines.append(f"## {st.get('id', '')} {st.get('title', '')}".strip())
+        for key, heading in (("done", "Что уже сделано"), ("left", "Что осталось"), ("blockers", "Какие есть блокаторы"), ("next", "Какой следующий шаг")):
+            val = st.get(key)
+            if isinstance(val, dict):
+                val = " · ".join(str(v) for v in (val.get("date"), val.get("text"), val.get("who")) if v)
+            lines.append(f"{heading}: {val or '—'}")
+        lines.append("")
+    return "\n".join(lines)
+
+
+def teams_blocks(data: dict) -> list[tuple[str, str, str]]:
+    """По слайду на команду: (название слайда, содержимое, панели)."""
+    date, today = resolve_today(data, 0)
+    out = []
+    for k, team in enumerate(data.get("teams", [])):
+        name = team.get("name", f"Команда {k + 1}")
+        stories = team.get("stories", [])
+        for st in stories:
+            nx = st.get("next")
+            if isinstance(nx, dict):
+                st["next_text"] = " · ".join(str(v) for v in (nx.get("date"), nx.get("text"), nx.get("who")) if v)
+            else:
+                st["next_text"] = nx or ""
+            st["story"] = f"{st.get('id', '')} {st.get('title', '')}".strip()
+        notes = [compose_note(st, "story", [("done", "Что сделано"), ("left", "Что осталось"), ("blockers", "Блокаторы"), ("next_text", "Следующий шаг"), ("pulse", "Пульс спринта")]) for st in stories]
+        validate_notes({"stories": [{"note": n} for n in notes]}, ("stories",))
+        heads = [head_chips({"due": (st.get("next") or {}).get("date") if isinstance(st.get("next"), dict) else "", "priority": st.get("priority")}, today) for st in stories]
+        rows = table_rows(f"story-{k}", stories, notes, ["story", "done", "left", "next_text"], "1.6fr 1.4fr 1.4fr 1.6fr", date, today, heads)
+        comment = team.get("comment_draft") or ""
+        if not comment.strip():
+            comment = f"Комментарий по команде {name} {date}\n" + team_summary(team)
+        elif not comment.lstrip().startswith("Комментарий"):
+            comment = f"Комментарий по команде {name} {date}\n" + comment
+        agreements = team.get("agreements_draft") or ""
+        if not agreements.strip():
+            agreements = f"Договорённости с командой {name}\n" + "".join(
+                f"- [{'x' if a.get('done') else ' '}] {a.get('what', '')} · от {a.get('from', '—')} · {a.get('when', '—')} · для {a.get('to', '—')}\n"
+                for a in team.get("agreements", [])
+            )
+        elif not agreements.lstrip().startswith("Договорённости"):
+            agreements = f"Договорённости с командой {name}\n" + agreements
+        tab1, sheet1 = edge_note(f"team-{k}-comment", "Комментарий", "green", "38%", f"{date}-team-{k}-comment", comment, head_chips({"due": date}, today))
+        tab2, sheet2 = edge_note(f"team-{k}-agree", "Договорённости", "gray", "62%", f"{date}-team-{k}-agree", agreements, "")
+        sprint = data.get("sprint", "")
+        body = tab1 + tab2 + f'<div class="widgets one">{table_widget(f"Истории {sprint}".strip(), ["История", "Что сделано", "Что осталось", "Следующий шаг"], "1.6fr 1.4fr 1.4fr 1.6fr", rows)}</div>'
+        out.append((f"Команда {name}", body, sheet1 + sheet2))
+    return out
+
+
+
+
+
+def render(md: str, retro: dict | None = None, today: dict | None = None, risks: dict | None = None, teams: dict | None = None) -> str:
     lines = strip_frontmatter(md.splitlines())
     title = next((l[2:].strip() for l in lines if l.startswith("# ")), None)
     if title is None:
@@ -533,9 +675,21 @@ def render(md: str, retro: dict | None = None, today: dict | None = None) -> str
     if not sections:
         raise ValueError("нет ни одного раздела `## `")
 
+    if teams is not None and teams.get("teams"):
+        # «Статус по командам» разворачивается в слайд на команду
+        expanded: list[tuple[str, list[str]]] = []
+        for name, body in sections:
+            if name.startswith("Статус по командам"):
+                expanded.extend((f"__team__{k}", []) for k in range(len(teams["teams"])))
+            else:
+                expanded.append((name, body))
+        sections = expanded
     total = len(sections) + 1
     slides = []
-    subtitle = " · ".join(name.split(" — ")[0] for name, _ in sections)
+    team_slides = teams_blocks(teams) if teams is not None and teams.get("teams") else []
+    subtitle = " · ".join(
+        (team_slides[int(name[8:])][0] if name.startswith("__team__") else name.split(" — ")[0]) for name, _ in sections
+    )
     cards = "".join(
         f'<div class="kpi{" red" if v != "0" and ("просроч" in k or "риск" in k) else ""}"><b>{html.escape(v)}</b><span>{html.escape(k)}</span></div>'
         for k, v in kpis
@@ -559,6 +713,15 @@ def render(md: str, retro: dict | None = None, today: dict | None = None) -> str
             inner, extra = today_block(today)   # созвоны — в панели «Календарь»
             chrome += extra
             attr = ' id="today" data-widgets data-today'
+        elif risks is not None and name.startswith("Риски"):
+            inner, extra = risks_block(risks)
+            chrome += extra
+            attr = ' id="risks" data-widgets data-risks'
+        elif name.startswith("__team__"):
+            k = int(name[8:])
+            name, inner, extra = team_slides[k]
+            chrome += extra
+            attr = f' id="team-{k}" data-widgets data-team'
         slides.append(
             f'<section class="slide"{attr}><header><h2>{inline(name)}</h2><span class="n">{n} / {total}</span></header>{inner}</section>'
         )
@@ -589,7 +752,7 @@ def main() -> int:
             print(f"render: {path}: битый JSON ({e}); слайд без виджетов", file=sys.stderr)
             return None
     try:
-        out = render(src.read_text(encoding="utf-8"), sidecar(".retro.json"), sidecar(".today.json"))
+        out = render(src.read_text(encoding="utf-8"), sidecar(".retro.json"), sidecar(".today.json"), sidecar(".risks.json"), sidecar(".teams.json"))
     except ValueError as e:
         print(f"render: {src}: {e}", file=sys.stderr)
         return 1
