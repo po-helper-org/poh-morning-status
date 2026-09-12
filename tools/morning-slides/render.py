@@ -25,6 +25,7 @@ radio/checkbox + label; без JS заметка показывается ста
 from __future__ import annotations
 
 import argparse
+import datetime as dt
 import html
 import json
 import re
@@ -92,6 +93,10 @@ label.row,label.edge,label.ib{cursor:pointer}.sheet.right{right:0;border-left:1p
 .sheet .ib{width:28px;height:28px;border:0;border-radius:6px;background:transparent;color:#8b8f96;cursor:pointer;font-size:16px;display:inline-flex;align-items:center;justify-content:center}
 .sheet .ib:hover{background:#1e1f23;color:#f0f0f2}
 .sheet .saved{font-size:12px;color:#8b8f96;margin-left:auto}
+.sheet .chip{display:inline-flex;align-items:center;gap:6px;padding:3px 8px;border-radius:8px;color:#4c8dff;font-size:14px}
+.sheet .flag{color:#e5484d;font-size:16px}.sheet .flag[data-p=medium]{color:#4c8dff}.sheet .flag[data-p=low]{color:#2F9E6E}.sheet .flag[data-p=none]{color:#8b8f96}
+.sheet .check{border-color:#8b8f96}.sheet .check[data-done]{background:#8b8f96;border-color:#8b8f96}
+.nojs{position:fixed;left:0;right:0;bottom:0;z-index:30;background:#8a5a00;color:#fff;padding:8px 14px;font-size:13px;text-align:center}
 /* заметка: блочный редактор (порт BlockEditor poh-okr-plugin); без JS — статичный рендер .md */
 .md{font-size:15px;line-height:1.55;color:#e6e7ea}.md h1{font-size:20px;margin:0 0 10px}.md h2{font-size:17px;margin:14px 0 6px}.md h3{font-size:15px;margin:12px 0 4px;color:#b9bcc3}
 .md p{margin:6px 0}.md ul,.md ol{margin:4px 0 8px;padding-left:22px}.md li{margin:3px 0}.md ul.todo{list-style:none;padding-left:0}
@@ -164,7 +169,7 @@ menu.style.top=(n.offsetTop+n.offsetHeight+4)+'px';menu.style.left=n.offsetLeft+
 const key=e=>{if(!menu){document.removeEventListener('keydown',key,true);return}const items=[...menu.querySelectorAll('button')];
 if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();e.stopPropagation();items[active].removeAttribute('data-active');active=(active+(e.key==='ArrowDown'?1:-1)+items.length)%items.length;items[active].setAttribute('data-active','')}
 else if(e.key==='Enter'){e.preventDefault();e.stopPropagation();items[active].click();document.removeEventListener('keydown',key,true)}
-else if(e.key==='Escape'){e.preventDefault();e.stopPropagation();closeMenu();document.removeEventListener('keydown',key,true)}};
+else if(e.key==='Escape'){e.preventDefault();e.stopPropagation();closeMenu();if(text(n)==='/'){n.textContent='';focus(n);emit()}document.removeEventListener('keydown',key,true)}};
 document.addEventListener('keydown',key,true)};
 root.addEventListener('input',()=>{const n=cur();if(n){const t=text(n);const type=n.getAttribute('data-block');
 if(type==='todo'){const box=n.querySelector('.box');if(box&&box.textContent){const stray=box.textContent;box.textContent='';let tn=n.firstChild;if(!tn||tn.nodeType!==3){tn=document.createTextNode('');n.prepend(tn)}tn.textContent+=stray;focus(n)}}
@@ -332,13 +337,49 @@ def md_to_html(src: str, first_is_title: bool = False) -> str:
     return "".join(out) or f'<p class="empty">{NOT_FOUND}</p>'
 
 
-def note_panel(key: str, side: str, text: str, close_for: str, row: str = "") -> str:
-    """Панель-заметка: только заметка. Первая строка — название, «Источники» — раздел внутри.
+def day_label(value: str, today: str) -> str:
+    """Дата чипа как в okr-плагине: «Сегодня», «Вчера», иначе ДД.ММ."""
+    if not value:
+        return ""
+    try:
+        d = dt.date.fromisoformat(value); t = dt.date.fromisoformat(today)
+    except ValueError:
+        return value
+    delta = (d - t).days
+    if delta == 0:
+        return "Сегодня"
+    if delta == -1:
+        return "Вчера"
+    if delta == 1:
+        return "Завтра"
+    return d.strftime("%d.%m")
+
+
+def head_chips(item: dict | None, report_date: str) -> str:
+    """Шапка панели: чек, дата, приоритет — референс TaskSheet poh-okr-plugin. Без данных — пусто."""
+    if item is None:
+        return ""
+    done = item.get("done_at") or ""
+    due = item.get("due") or ""
+    pr = item.get("priority") or ""
+    date = day_label(done or due, report_date)
+    parts = [f'<span class="check"{" data-done" if done else ""} aria-label="{"сделано" if done else "открыто"}"></span>']
+    if date:
+        parts.append(f'<span class="chip" title="{html.escape(done or due)}">&#128197; {html.escape(date)}</span>')
+    if item.get("start"):
+        parts.append(f'<span class="chip">{html.escape(item["start"])}{"–" + html.escape(item["end"]) if item.get("end") else ""}</span>')
+    if pr:
+        parts.append(f'<span class="flag" data-p="{html.escape(pr)}" title="приоритет {html.escape(pr)}">&#9873;</span>')
+    return "".join(parts)
+
+
+def note_panel(key: str, side: str, text: str, close_for: str, row: str = "", head: str = "") -> str:
+    """Панель-заметка: шапка с чипами, дальше заметка. Первая строка — название, «Источники» — раздел внутри.
     Без JS — статичный рендер; с JS монтируется редактор из markdown в скрытом <textarea class=src>."""
     payload = html.escape(text)   # в textarea сущности декодируются, теги не парсятся
     return (
         f'<aside class="sheet {side} note" role="dialog" data-key="{html.escape(key)}"{f" data-row=\"{row}\"" if row else ""}>'
-        f'<div class="head"><span style="flex:1"></span>'
+        f'<div class="head">{head}<span style="flex:1"></span>'
         f'<label class="ib" for="{close_for}" role="button" aria-label="закрыть">&#10005;</label></div>'
         f'<div class="body"><textarea class="src" hidden>{payload}</textarea>'
         f'<div class="note-view md">{md_to_html(text, first_is_title=True)}</div></div>'
@@ -362,6 +403,9 @@ def retro_block(data: dict) -> tuple[str, str]:
     """Слайд ретро: виджеты Activity/Tasks, каждая строка открывает свою заметку; вкладка — заметка ретро."""
     validate_retro(data)
     date = data.get("date", "")
+    today = data.get("today") or (
+        (dt.date.fromisoformat(date) + dt.timedelta(days=1)).isoformat() if re.fullmatch(r"\d{4}-\d{2}-\d{2}", date) else date
+    )
     activity = data.get("activity", [])
     tasks = data.get("tasks", [])
     act_rows = "".join(
@@ -369,7 +413,7 @@ def retro_block(data: dict) -> tuple[str, str]:
             f"event-{i}",
             f'<span class="m">{html.escape(e.get("start", ""))}</span><span class="t">{html.escape(note_title(e["note"]))}</span>'
             f'<span class="m">{html.escape(", ".join(e.get("with", [])[:2]))}{" …" if len(e.get("with", [])) > 2 else ""}</span>',
-            note_panel(f"{date}-event-{i}", "right", e["note"], "sheet-none", f"event-{i}"),
+            note_panel(f"{date}-event-{i}", "right", e["note"], "sheet-none", f"event-{i}", head_chips({"done_at": date, "start": e.get("start", ""), "end": e.get("end", "")}, today)),
         )
         for i, e in enumerate(activity)
     ) or f'<div class="empty">{NOT_FOUND}</div>'
@@ -379,7 +423,7 @@ def retro_block(data: dict) -> tuple[str, str]:
             '<span class="check" data-done></span>'
             + (f'<span class="id">{html.escape(t["id"])}</span>' if t.get("id") else "")
             + f'<span class="t">{html.escape(note_title(t["note"]))}</span><span class="m">{html.escape(t.get("kr", "") or "")}</span>',
-            note_panel(f"{date}-task-{i}", "right", t["note"], "sheet-none", f"task-{i}"),
+            note_panel(f"{date}-task-{i}", "right", t["note"], "sheet-none", f"task-{i}", head_chips({**t, "done_at": t.get("done_at") or date}, today)),
         )
         for i, t in enumerate(tasks)
     ) or f'<div class="empty">{NOT_FOUND}</div>'
@@ -396,7 +440,7 @@ def retro_block(data: dict) -> tuple[str, str]:
         retro_note = f"Ретро {date}\n" + retro_note
     chrome = (
         '<div class="item"><input class="toggle" type="checkbox" id="retro-note">'
-        + note_panel(f"{date}-retro", "left", retro_note, "retro-note")
+        + note_panel(f"{date}-retro", "left", retro_note, "retro-note", "", head_chips({"done_at": date}, today))
         .replace('class="sheet left note"', 'class="sheet left note" id="retro-note-sheet"')
         + "</div>"
     )
@@ -455,7 +499,8 @@ def render(md: str, retro: dict | None = None) -> str:
         )
     return (
         "<!doctype html>\n<html lang=\"ru\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">"
-        f"<title>{html.escape(title)}</title><style>{CSS}</style></head><body><div class=\"deck\">\n"
+        f"<title>{html.escape(title)}</title><style>{CSS}</style></head><body>"
+        "<noscript><div class=\"nojs\">Скрипты отключены: заметки только для чтения, правка и меню «/» недоступны. Откройте файл в Safari или Chrome.</div></noscript><div class=\"deck\">\n"
         + "\n".join(slides)
         + f"\n</div>{chrome}<script>{JS}</script></body></html>\n"
     )

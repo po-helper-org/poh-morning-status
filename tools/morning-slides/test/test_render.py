@@ -54,6 +54,12 @@ class RetroTest(unittest.TestCase):
         self.assertIn('<li class="todo"><input type="checkbox" checked><span>собрать данные за август</span></li>', out)
         self.assertIn('<h2>Источники</h2>', out)
         self.assertNotIn('class="src"><b>', out)   # отдельного блока «Источник» больше нет
+        # шапка панели: чек, дата, приоритет (референс TaskSheet); noscript-баннер
+        sheet0 = out.split('for="task-0">')[2].split('</aside>')[0] if out.count('for="task-0">') > 2 else out.split('<label class="row" for="task-0">')[1].split('</aside>')[0]
+        self.assertIn('<span class="check" data-done', sheet0)
+        self.assertIn('&#128197; Вчера</span>', sheet0)
+        self.assertIn('<span class="flag" data-p="high"', sheet0)
+        self.assertIn('<noscript><div class="nojs">', out)
         # заготовка ретро
         for h in ('Что было сделано', 'Как это влияет на цели спринта', 'Как это влияет на цели квартала', 'Что не получилось сделать'):
             self.assertIn(f'<h2>{h}</h2>', out)

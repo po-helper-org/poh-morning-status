@@ -190,7 +190,7 @@ sources: [backlog.md, calendar|none, GROUND/RESULTS/<sprint-report>|none]
   "note_draft": "Ретро {yesterday}\n## Что было сделано\n- [x] … (PO-…)\n\n## Как это влияет на цели спринта\n- …\n\n## Как это влияет на цели квартала\n- …\n\n## Что не получилось сделать\n- [ ] … (PO-…)\n",
   "activity": [{"start": "11:00", "end": "11:30", "with": ["…"],
                 "note": "VK: переезд виджета\n## Итог\n- …\n\n## Решения\n- [ ] … (PO-…)\n\n## Источники\n- календарь MTS Exchange, событие {yesterday} 11:00 (tools/calendar-today)\n- повестка события: «…»\n"}],
-  "tasks": [{"id": "PO-105", "kr": "PO-78",
+  "tasks": [{"id": "PO-105", "kr": "PO-78", "priority": "high", "due": "2026-09-11", "done_at": "{yesterday}",
              "note": "Ишманов + Бордюг: отправить смету за август\nСделано: …\n\n- [x] …\n- [ ] …\n\n## Источники\n- Backlog.md: backlog/tasks/po-105, status Done, updatedAt {yesterday}\n"},
             {"note": "Заведены 5 инициатив: …\n1. PO-128 …\n2. PO-129…132 …\n\n- [ ] привязать к KR\n\n## Источники\n- Backlog.md: backlog task list --json, createdAt {yesterday} (PO-128…PO-132)\n"}]
 }
@@ -204,6 +204,8 @@ sources: [backlog.md, calendar|none, GROUND/RESULTS/<sprint-report>|none]
    - **Раздел `## Источники` обязателен** в каждой заметке `tasks` и `activity`:
      откуда сведения — путь к файлу задачи и поле, команда и поле `--json`, событие
      календаря, заметка PULSE. Без него рендерер отказывает (код 1).
+   - `priority`, `due`, `done_at` (задачи), `start`/`end` (события) — в шапку панели:
+     чек, дата («Вчера»/«Сегодня»/ДД.ММ), флаг приоритета. Нет данных — поле опускается.
    - **Всё сделанное за вчера — строки `tasks`.** С `id`, если это задача Backlog.md
      (`Done`/`Cancelled`, `updatedAt` = вчера); без `id` — результаты-абстракции
      («Заведены 5 инициатив», «Фикс вебхука») с источниками на реальные записи.

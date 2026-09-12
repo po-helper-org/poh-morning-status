@@ -68,7 +68,11 @@ async function scenario(browser, { javaScriptEnabled, viewport = { width: 1200, 
   assert.match(t0, /^Ишманов \+ Бордюг: отправить смету за август/, `${label}: название первой строкой`)
   assert.match(t0, /Сделано:.*отправлена Бордюгу/s, `${label}: текст заметки`)
   assert.match(t0, /Источники[\s\S]*backlog\/tasks\/po-105/, `${label}: источники внутри заметки`)
-  assert.equal(await sheet0.locator('.chip, .flag, div.src, .lbl-edit').count(), 0, `${label}: лишнего хрома нет`)
+  assert.equal(await sheet0.locator('div.src, .lbl-edit').count(), 0, `${label}: отдельного блока источника и кнопок режима нет`)
+  assert.equal(await sheet0.locator('.head .check[data-done]').count(), 1, `${label}: чек в шапке`)
+  assert.match(await sheet0.locator('.head .chip').innerText(), /Вчера/, `${label}: дата в шапке`)
+  assert.equal(await sheet0.locator('.head .flag[data-p="high"]').count(), 1, `${label}: флаг приоритета`)
+  if (!javaScriptEnabled) assert.match(await page.locator('noscript').innerText().catch(() => ''), /Скрипты отключены|^$/)
 
   if (javaScriptEnabled) {
     const ed = sheet0.locator('.editor')
