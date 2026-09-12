@@ -40,7 +40,10 @@ async function scenario(browser, { javaScriptEnabled, viewport = { width: 1200, 
   const edge = page.locator('label.edge[for="retro-note"]')
   assert.equal(await edge.count(), 1, `${label}: одна вкладка ретро`)
   assert.ok(await edge.evaluate(el => el.closest('.slide').id === 'retro'), `${label}: вкладка внутри слайда ретро`)
-  assert.equal(await page.locator('.slide:first-child label.edge').count(), 0, `${label}: на титуле вкладок нет`)
+  assert.equal(await page.locator('h1').filter({ hasText: /^Утро/ }).count(), 0, `${label}: титульного экрана нет`)
+  assert.equal(await page.locator('.slide[data-kind]:not(.tail)').count(), 6, `${label}: 6 разделов с цветной полосой`)
+  assert.equal(await page.locator('#retro .kicker').innerText(), 'РЕТРО')
+  assert.notEqual(await page.locator('#retro').evaluate(el => getComputedStyle(el).borderLeftColor), await page.locator('#today').evaluate(el => getComputedStyle(el).borderLeftColor), `${label}: разделы отличаются цветом`)
   await page.locator('#retro').scrollIntoViewIfNeeded()
   await edge.waitFor({ state: 'visible' })
 
@@ -60,7 +63,7 @@ async function scenario(browser, { javaScriptEnabled, viewport = { width: 1200, 
     assert.equal(await drawer.locator('.editor[contenteditable="true"]').count(), 1, 'редактор смонтирован, режимов нет')
     assert.equal(await drawer.locator('.editor [data-block="title"]').innerText(), 'Ретро 2026-09-10')
     assert.equal(await drawer.locator('.editor [data-block="todo"]').count(), 3)
-    assert.equal(await drawer.locator('label.lbl-edit, .btn').count(), 0, 'кнопок режима нет')
+    assert.equal(await drawer.locator('label.lbl-edit, .btn:not(.close)').count(), 0, 'кнопок режима нет')
   } else {
     assert.equal(await drawer.locator('.note-view li.todo input').count(), 3, `${label}: чеклист отрисован`)
     assert.equal(await drawer.locator('.note-view[contenteditable="true"]').count(), 1, `${label}: без скриптов текст всё равно правится`)
@@ -81,6 +84,10 @@ async function scenario(browser, { javaScriptEnabled, viewport = { width: 1200, 
   assert.match(t0, /Сделано:.*отправлена Бордюгу/s, `${label}: текст заметки`)
   assert.match(t0, /Источники[\s\S]*backlog\/tasks\/po-105/, `${label}: источники внутри заметки`)
   assert.equal(await sheet0.locator('div.src, .lbl-edit').count(), 0, `${label}: отдельного блока источника и кнопок режима нет`)
+  const closeBtn = sheet0.locator('.foot label.btn.close')
+  assert.equal(await closeBtn.innerText(), 'Закрыть', `${label}: «Закрыть» внизу панели`)
+  const cb = await closeBtn.boundingBox(); const sb0 = await sheet0.boundingBox()
+  assert.ok(cb.x + cb.width > sb0.x + sb0.width - 40 && cb.y > sb0.y + sb0.height - 80, `${label}: «Закрыть» в правом нижнем углу`)
   assert.equal(await sheet0.locator('.head .check[data-done]').count(), 1, `${label}: чек в шапке`)
   assert.match(await sheet0.locator('.head .chip').first().innerText(), /Вчера/, `${label}: дата в шапке`)
   assert.equal(await sheet0.locator('.head .flag[data-p="high"]').count(), 1, `${label}: флаг приоритета`)
@@ -152,6 +159,29 @@ async function scenario(browser, { javaScriptEnabled, viewport = { width: 1200, 
     const t = await noteText('#task-0 ~ aside.sheet .body')
     assert.match(t, /новый пункт/); assert.match(t, /Итог/)
   }
+
+  // ——— «Комментарии для LLM» в конце страницы ———
+  await page.locator('#llm').scrollIntoViewIfNeeded()
+  const llmBtn = page.locator('label.edge[for="llm-note"]')
+  assert.equal(await llmBtn.textContent(), 'Комментарии для LLM')
+  await llmBtn.click()
+  const llm = page.locator('#llm-sheet')
+  await llm.waitFor({ state: 'visible' })
+  if (javaScriptEnabled) {
+    const prompt = await llm.locator('#llm-prompt').inputValue()
+    assert.match(prompt, /Скорректируй утренний отчёт от 2026-09-11/, 'шапка промта')
+    assert.match(prompt, /## Ретро 2026-09-10 · Tasks · «Ишманов \+ Бордюг: отправить смету за август — ок»/, 'правка привязана к разделу и заметке')
+    assert.match(prompt, /\+ - \[x\] получить подтверждение/, 'отмеченный чеклист попал как правка')
+    assert.match(prompt, /\+ - \[ \] новый пункт/, 'добавленный пункт попал')
+    assert.match(prompt, /\+ ## Итог/, 'добавленный заголовок попал')
+    assert.match(await llm.locator('#llm-status').innerText(), /Правок: 1\./, 'счётчик правок')
+    await llm.locator('#llm-copy').click()
+    await page.waitForFunction(() => /скопировано|Cmd\+C/.test(document.getElementById('llm-copied').textContent), null, { timeout: 3000 })
+  } else {
+    assert.match(await llm.locator('#llm-status').innerText(), /Без скриптов правки не отслеживаются/)
+  }
+  await llm.locator('.foot label.btn.close').click()
+  assert.equal(await visible(page, '#llm-sheet'), false, `${label}: «Закрыть» внизу закрывает экран промта`)
 
   // ——— Слайд «Сегодня» ———
   await page.locator('#today').scrollIntoViewIfNeeded()
@@ -268,10 +298,11 @@ async function mobile(browser, { javaScriptEnabled, viewport }) {
   assert.equal(await nav.evaluate(el => getComputedStyle(el).display), 'flex', `${label}: навигация чипами`)
   assert.equal(await nav.locator('a').allTextContents().then(a => a.join('|')), '2026-09-11|Ретро|Сегодня|Риски|Live|GDS|Решения')
   assert.equal(await nav.evaluate(el => getComputedStyle(el).position), 'sticky')
+  assert.equal(await page.locator('h1').filter({ hasText: /^Утро/ }).count(), 0, `${label}: титула нет`)
 
-  // 2. Титул сжат: KPI — чипы в ряд; слайд «Сегодня» — виджеты в один столбец, вкладки стали кнопками.
-  assert.equal(await page.locator('#top .kpis').evaluate(el => getComputedStyle(el).display), 'flex')
+  // 2. Слайд «Сегодня» — виджеты в один столбец, вкладки стали кнопками; разделы — отдельные карточки с полосой.
   await page.locator('#today').scrollIntoViewIfNeeded()
+  assert.equal(await page.locator('#today').evaluate(el => getComputedStyle(el).borderRadius), '10px', `${label}: раздел — карточка`)
   const cols = await page.locator('#today .widgets').evaluate(el => getComputedStyle(el).gridTemplateColumns.split(' ').length)
   assert.equal(cols, 1, `${label}: один столбец`)
   const pill = page.locator('label.edge[for="plan-note"]')
@@ -360,7 +391,7 @@ async function emptyData(browser) {
   await page.locator('#risks').scrollIntoViewIfNeeded()
   assert.equal(await page.locator('#risks .widget .empty').count(), 1)
   assert.equal(await page.locator('.slide[data-team]').count(), 0, 'без команд — секция из markdown остаётся')
-  assert.match(await page.locator('.slide').nth(4).innerText(), /НЕТ ДАННЫХ: историй/)
+  assert.match(await page.locator('.slide[data-kind="team"]').innerText(), /НЕТ ДАННЫХ: историй/)
   await ctx.close()
   console.log('ok — пустые данные')
 }

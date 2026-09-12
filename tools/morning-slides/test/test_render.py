@@ -8,11 +8,13 @@ SAMPLE = (Path(__file__).parent / "sample.md").read_text()
 class RenderTest(unittest.TestCase):
     def test_slides_and_kpis(self):
         out = render(SAMPLE)
-        self.assertEqual(out.count('<section class="slide" id='), 6)   # титул + 5 разделов, у каждого id
-        self.assertIn('<nav class="mnav"><a href="#top" class="d">2026-09-11</a><a href="#s-2">Ретро</a><a href="#s-3">Сегодня</a><a href="#s-4">Риски</a><a href="#s-5">Команды</a><a href="#s-6">Решения</a></nav>', out)
-        self.assertIn('<b>2</b><span>просрочено</span>', out)
-        self.assertIn('class="kpi red"><b>6</b>', out)
-        self.assertIn('class="kpi"><b>0</b>', out)
+        self.assertEqual(out.count('<section class="slide" data-kind='), 5)   # 5 разделов, титула нет
+        self.assertEqual(out.count('<section class="slide tail"'), 1)         # хвост «Комментарии для LLM»
+        self.assertNotIn('<h1>Утро', out); self.assertNotIn('class="kpi', out)
+        self.assertIn('<nav class="mnav"><a href="#s-1" class="d">2026-09-11</a><a href="#s-1">Ретро</a><a href="#s-2">Сегодня</a><a href="#s-3">Риски</a><a href="#s-4">Команды</a><a href="#s-5">Решения</a></nav>', out)
+        self.assertIn('<section class="slide" data-kind="retro" id="s-1"><header><div><span class="kicker">Ретро</span><h2>', out)
+        self.assertIn('data-kind="decisions"', out)
+        self.assertIn('id="llm-sheet"', out); self.assertIn('id="llm-prompt"', out)
     def test_markup(self):
         out = render(SAMPLE)
         self.assertIn('<span class="late">−1 д</span>', out)
@@ -43,9 +45,12 @@ class RetroTest(unittest.TestCase):
         self.assertEqual(out.count('<aside class="sheet right note"'), 4)   # панели отрисованы заранее
         self.assertEqual(out.count('type="radio" name="sheet"'), 5)         # 4 строки + sheet-none
         self.assertIn('<label class="edge" data-color="red" style="top:50%" for="retro-note"', out)
-        self.assertIn('<section class="slide" id="retro" data-widgets data-retro>', out)
+        self.assertIn('<section class="slide" data-kind="retro" id="retro" data-widgets data-retro>', out)
+        self.assertIn('<label class="btn close" for="sheet-none" role="button">Закрыть</label></div></aside>', out)   # «Закрыть» внизу панели
+        self.assertIn('data-section="Ретро 2026-09-10 · Tasks"', out)
         self.assertNotIn('href="#', out.split('</nav>')[1])   # якоря только в навигации, панели — не ссылки
         retro = out.split('id="retro" data-widgets data-retro>')[1].split('</section>')[0]
+        self.assertEqual(out.count('id="sheet-none"'), 1)
         self.assertNotIn('<table>', retro)
         # название строки — первая строка заметки; без id — только название
         self.assertIn('for="task-0"><span class="check" data-done></span><span class="id">PO-105</span><span class="t">Ишманов + Бордюг: отправить смету за август</span>', out)
@@ -81,7 +86,7 @@ class RetroTest(unittest.TestCase):
         import json
         today = json.loads((Path(__file__).parent / "sample.today.json").read_text())
         out = render(SAMPLE, self.data(), today)
-        self.assertIn('<section class="slide" id="today" data-widgets data-today>', out)
+        self.assertIn('<section class="slide" data-kind="today" id="today" data-widgets data-today>', out)
         self.assertIn('<label class="edge" data-color="green" style="top:38%" for="plan-note"', out)
         self.assertIn('>План на сегодня</label>', out)
         self.assertIn('<label class="edge" data-color="blue" style="top:62%" for="today-calendar"', out)
@@ -127,6 +132,7 @@ class RetroTest(unittest.TestCase):
         self.assertIn('<a href="#team-0">Live</a><a href="#team-1">GDS</a>', out)
         self.assertNotIn('НЕТ ДАННЫХ: историй', out)
         live = out.split('id="team-0" data-widgets data-team>')[1].split('</section>')[0]
+        self.assertIn('data-kind="team" id="team-0"', out)
         self.assertIn('<span>История</span><span>Что сделано</span><span>Что осталось</span><span>Следующий шаг</span>', live)
         self.assertIn('2026-09-15 · проверить долю ошибок &lt; 0.5% в Grafana · Юмшанов', live)
         self.assertIn('for="team-0-comment"', live); self.assertIn('for="team-0-agree"', live)
@@ -137,11 +143,11 @@ class RetroTest(unittest.TestCase):
         self.assertIn('<input type="checkbox"><span>схема БД Live.Процессинг · от Юмшанов · 2026-09-15 · для Ишманов</span>', out)
         self.assertIn('<h1 class="title"><span class="id">PO-133</span> Переключение 50/50 на Live.Процессинг</h1>', out)
         self.assertIn('<h2>Пульс спринта</h2>', out)
-        self.assertIn('Команда Live · Команда GDS', out.split('class="sub">')[1].split('<')[0])
+        self.assertIn('<a href="#team-0">Live</a><a href="#team-1">GDS</a><a href="#s-6">Решения</a>', out)
     def test_no_json_no_widgets(self):
         out = render(SAMPLE, None)
         self.assertNotIn('id="retro-note-sheet"', out)
-        self.assertNotIn('id="sheet-none"', out)
+        self.assertEqual(out.count('id="sheet-none"'), 1)   # хвост LLM всегда есть
     def test_md_renderer(self):
         from render import md_to_html
         h = md_to_html("Название\n# T\n- [ ] a\n- [x] b\n\n1. one\n> q\n---\n**b** `c` PO-1", first_is_title=True)

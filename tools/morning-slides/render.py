@@ -83,6 +83,17 @@ code{font-family:ui-monospace,Menlo,monospace;font-size:14px;background:var(--so
 .widget .cols-head{display:grid;gap:14px;padding:8px 14px;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;border-top:1px solid var(--line)}
 .row .ag{display:block;color:var(--muted);font-size:13px;white-space:normal;margin-top:2px}
 .edge:hover{filter:brightness(1.15)}
+/* явные разделы: цветная полоса и подпись над заголовком */
+.slide{border-left:6px solid var(--line)}
+.slide[data-kind=retro]{border-left-color:var(--red)}.slide[data-kind=today]{border-left-color:var(--green)}.slide[data-kind=risks]{border-left-color:#b8860b}
+.slide[data-kind=team]{border-left-color:#4b4f58}.slide[data-kind=decisions]{border-left-color:var(--blue)}.slide[data-kind=controls]{border-left-color:#7c6fd8}
+.kicker{display:block;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
+.slide.tail{min-height:0;padding:28px 64px 40px}.tail-box{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.tail-box .edge{position:static;writing-mode:horizontal-tb;transform:none;display:inline-block;border-radius:8px;padding:12px 18px;font-size:13px}
+.tail-hint{color:var(--muted);font-size:14px;margin:0}
+.sheet .btn{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:6px;padding:6px 12px;font-size:13px;color:#d5d6da;cursor:pointer;background:transparent;font-family:inherit}
+.sheet .btn:hover{background:#1e1f23}.sheet .btn.close{margin-left:auto}.sheet .foot .saved+.btn.close{margin-left:12px}
+.prompt{width:100%;box-sizing:border-box;min-height:60vh;resize:vertical;border:1px solid var(--line);border-radius:6px;background:#0b0c0e;color:#f0f0f2;font:13px/1.5 ui-monospace,Menlo,monospace;padding:10px 12px;outline:0}
 .sheet{position:fixed;top:0;bottom:0;width:440px;max-width:92vw;display:none;flex-direction:column;z-index:44;background:#111214;color:#f0f0f2;box-shadow:0 0 24px rgba(0,0,0,.35);font-size:15px}
 .toggle{position:absolute;opacity:0;width:0;height:0;pointer-events:none}
 .toggle:checked~.sheet{display:flex}
@@ -144,9 +155,9 @@ html,body{height:100dvh;font-size:15px}
 .mnav::-webkit-scrollbar{display:none}
 .mnav a{flex:0 0 auto;padding:6px 11px;border-radius:999px;border:1px solid var(--line);color:var(--ink);text-decoration:none;font-size:13px;line-height:1.2}
 .mnav a.d{font-weight:700;border-color:transparent;padding-left:4px}
-.slide{display:block;min-height:0;scroll-snap-align:none;padding:16px 14px 20px;border-bottom:6px solid var(--bg)}
+.slide{display:block;min-height:0;scroll-snap-align:none;padding:16px 14px 20px;border-bottom:0;margin:10px 8px;border-radius:10px;border-left-width:5px}
+.slide.tail{padding:16px 14px 24px}.tail-box .edge{margin:0}
 .slide>header{margin-bottom:12px;padding-bottom:6px}.slide h2{font-size:20px}.slide .n{display:none}
-#top{padding-top:14px}#top h1{font-size:24px;margin-bottom:2px}#top .sub{font-size:13px;margin-bottom:12px}#top .foot{display:none}
 .kpis{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}.kpis::-webkit-scrollbar{display:none}
 .kpi{flex:0 0 auto;min-width:120px;padding:10px 12px}.kpi b{font-size:24px}.kpi span{font-size:12px}
 .widgets{grid-template-columns:1fr;gap:12px;margin-bottom:12px}.widget.wide{grid-column:auto}
@@ -228,6 +239,19 @@ if(type!=='text'){setType(n,'text');return}const prev=n.previousElementSibling;i
 markEmpty();host.removeAttribute('contenteditable');host.replaceChildren(root);return{serialize}}
 // при смене слайда открытые панели закрываются: вкладки принадлежат своему слайду
 (()=>{let active=null;const io=new IntersectionObserver(es=>{es.forEach(en=>{if(en.isIntersecting&&active!==en.target){if(active!==null){document.querySelectorAll('.toggle:checked').forEach(t=>{t.checked=false});const none=document.getElementById('sheet-none');if(none)none.checked=true}active=en.target}})},{threshold:.6});slides.forEach(sl=>io.observe(sl))})();
+// ——— «Комментарии для LLM»: промт из правок (исходник заметки vs localStorage) ———
+function lineDiff(a,b){const A=a.split('\n'),B=b.split('\n');const setA=new Set(A),setB=new Set(B);const out=[];
+A.forEach(l=>{if(!setB.has(l)&&l.trim())out.push('- '+l)});B.forEach(l=>{if(!setA.has(l)&&l.trim())out.push('+ '+l)});return out}
+function buildPrompt(){const sheet=document.getElementById('llm-sheet');if(!sheet)return;const date=sheet.dataset.date;const parts=[];let n=0;
+document.querySelectorAll('.note').forEach(note=>{const src=note.querySelector('textarea.src');if(!src)return;let cur=null;try{cur=localStorage.getItem('morning-note-'+note.dataset.key)}catch(_){}
+if(cur===null||cur===src.value)return;const d=lineDiff(src.value,cur);if(!d.length)return;n++;
+const title=cur.split('\n')[0]||src.value.split('\n')[0];parts.push(`## ${note.dataset.section||'Заметка'} · «${title}»\n${d.join('\n')}`)});
+const ta=document.getElementById('llm-prompt');const st=document.getElementById('llm-status');
+if(!n){ta.value='';st.textContent='Правок нет — отчёт принят без изменений.';return}
+st.textContent=`Правок: ${n}. Скопируй промт в чат dsh и запусти /morning.`;
+ta.value=[`Скорректируй утренний отчёт от ${date} по правкам PO ниже и перегенерируй его по актуальным данным Backlog.md и календаря (/morning). Правки PO имеют приоритет над данными; если правка противоречит данным — сохрани правку и вынеси расхождение в «Нужны решения». Строки «-» удалены PO, «+» добавлены PO (чеклист «[x]» — отмечено сделанным).`,'',...parts,'',`Правок: ${n}. Формат отчёта и разделы не менять.`].join('\n')}
+(()=>{const t=document.getElementById('llm-note');if(!t)return;t.addEventListener('change',()=>{if(t.checked)buildPrompt()});
+const copy=document.getElementById('llm-copy');copy&&copy.addEventListener('click',async()=>{const ta=document.getElementById('llm-prompt');try{await navigator.clipboard.writeText(ta.value);document.getElementById('llm-copied').textContent='скопировано'}catch(_){ta.select();document.execCommand&&document.execCommand('copy');document.getElementById('llm-copied').textContent='выделено — Cmd+C'}})})();
 document.querySelectorAll('.note').forEach(note=>{const key='morning-note-'+note.dataset.key;const src=note.querySelector('textarea.src');const host=note.querySelector('.note-view');const saved=note.querySelector('.saved');
 let stored=null;try{stored=localStorage.getItem(key)}catch(_){}
 const initial=stored??(src?src.value:'');
@@ -419,18 +443,18 @@ def head_chips(item: dict | None, report_date: str) -> str:
     return "".join(parts)
 
 
-def note_panel(key: str, side: str, text: str, close_for: str, row: str = "", head: str = "") -> str:
+def note_panel(key: str, side: str, text: str, close_for: str, row: str = "", head: str = "", section: str = "") -> str:
     """Панель-заметка: шапка с чипами, дальше заметка. Первая строка — название, «Источники» — раздел внутри.
     Без JS — статичный рендер; с JS монтируется редактор из markdown в скрытом <textarea class=src>."""
     payload = html.escape(text)   # в textarea сущности декодируются, теги не парсятся
     return (
-        f'<aside class="sheet {side} note" role="dialog" data-key="{html.escape(key)}"{f" data-row=\"{row}\"" if row else ""}>'
+        f'<aside class="sheet {side} note" role="dialog" data-key="{html.escape(key)}"{f" data-row=\"{row}\"" if row else ""}{f" data-section=\"{html.escape(section)}\"" if section else ""}>'
         f'<div class="head">{head}<span style="flex:1"></span>'
         '<noscript><span class="chip" style="color:#e0a538;font-size:12px" title="Откройте файл в Safari или Chrome">без скриптов: только текст, меню «/» недоступно</span></noscript>'
         f'<label class="ib" for="{close_for}" role="button" aria-label="закрыть">&#10005;</label></div>'
         f'<div class="body"><textarea class="src" hidden>{payload}</textarea>'
         f'<div class="note-view md" contenteditable="true" spellcheck="false">{md_to_html(text, first_is_title=True)}</div></div>'
-        f'<div class="foot"><span class="saved"></span></div></aside>'
+        f'<div class="foot"><span class="saved"></span><label class="btn close" for="{close_for}" role="button">Закрыть</label></div></aside>'
     )
 
 
@@ -444,6 +468,38 @@ def item(input_id: str, row: str, sheet: str) -> str:
 
 def note_title(note: str) -> str:
     return note.strip().splitlines()[0].lstrip("# ").strip()
+
+
+def section_kind(name: str) -> str:
+    base = name.split(" — ")[0].strip()
+    for prefix, kind in [("Ретро", "retro"), ("Сегодня", "today"), ("Ближайшие договорённости", "controls"), ("Риски", "risks"),
+                         ("Статус по командам", "team"), ("Команда ", "team"), ("Нужны решения", "decisions")]:
+        if base.startswith(prefix):
+            return kind
+    return "other"
+
+
+def llm_tail(title: str) -> tuple[str, str]:
+    """Хвост страницы: кнопка «Комментарии для LLM» и экран с промтом из правок (собирается JS из localStorage)."""
+    date = title.replace("Утро ", "").strip()
+    section = (
+        '<section class="slide tail" id="llm" data-kind="llm"><div class="tail-box">'
+        '<label class="edge" data-color="blue" for="llm-note" role="button">Комментарии для LLM</label>'
+        '<p class="tail-hint">Собирает все правки заметок и чеклистов на этой странице в промт для перегенерации отчёта.</p>'
+        '</div></section>'
+    )
+    sheet = (
+        '<div class="item"><input class="toggle left-toggle" type="checkbox" id="llm-note"><label class="scrim" for="llm-note" aria-hidden="true"></label>'
+        f'<aside class="sheet right" role="dialog" id="llm-sheet" aria-label="Комментарии для LLM" data-date="{html.escape(date)}">'
+        '<div class="head"><span class="chip">Комментарии для LLM</span><span style="flex:1"></span>'
+        '<label class="ib" for="llm-note" role="button" aria-label="закрыть">&#10005;</label></div>'
+        '<div class="body"><p class="tail-hint" id="llm-status">'
+        '<noscript>Без скриптов правки не отслеживаются: откройте файл в браузере.</noscript></p>'
+        '<textarea class="prompt" id="llm-prompt" spellcheck="false" placeholder="Правок нет — отчёт принят без изменений."></textarea></div>'
+        '<div class="foot"><button type="button" class="btn" id="llm-copy">Скопировать</button><span class="saved" id="llm-copied"></span>'
+        '<label class="btn close" for="llm-note" role="button">Закрыть</label></div></aside></div>'
+    )
+    return section, sheet
 
 
 def nav_label(name: str) -> str:
@@ -476,7 +532,7 @@ def widget(title: str, rows: list[str]) -> str:
     )
 
 
-def note_rows(prefix: str, items: list[dict], date: str, today: str, kind: str) -> list[str]:
+def note_rows(prefix: str, items: list[dict], date: str, today: str, kind: str, section: str = "") -> list[str]:
     """Строки виджета с заметками: kind — task (чек, id, kr/срок) или event (время, участники)."""
     rows = []
     for i, it in enumerate(items):
@@ -493,16 +549,16 @@ def note_rows(prefix: str, items: list[dict], date: str, today: str, kind: str) 
                      + (f'<span class="id">{html.escape(it["id"])}</span>' if it.get("id") else "")
                      + f'<span class="t">{html.escape(note_title(it["note"]))}</span><span class="m">{html.escape(meta)}</span>')
             head = head_chips(it, today)
-        rows.append(item(rid, label, note_panel(f"{date}-{rid}", "right", it["note"], "sheet-none", rid, head)))
+        rows.append(item(rid, label, note_panel(f"{date}-{rid}", "right", it["note"], "sheet-none", rid, head, section)))
     return rows
 
 
-def edge_note(edge_id: str, label: str, color: str, top: str, key: str, text: str, head: str) -> tuple[str, str]:
+def edge_note(edge_id: str, label: str, color: str, top: str, key: str, text: str, head: str, section: str = "") -> tuple[str, str]:
     """Вкладка на краю слайда + левая панель-заметка (checkbox-hack)."""
     tab = f'<label class="edge" data-color="{color}" style="top:{top}" for="{edge_id}" role="button">{html.escape(label)}</label>'
     sheet = (
         f'<div class="item"><input class="toggle left-toggle" type="checkbox" id="{edge_id}"><label class="scrim" for="{edge_id}" aria-hidden="true"></label>'
-        + note_panel(key, "left", text, edge_id, "", head).replace('class="sheet left note"', f'class="sheet left note" id="{edge_id}-sheet"')
+        + note_panel(key, "left", text, edge_id, "", head, section).replace('class="sheet left note"', f'class="sheet left note" id="{edge_id}-sheet"')
         + "</div>"
     )
     return tab, sheet
@@ -524,7 +580,8 @@ def calendar_sheet(edge_id: str, label: str, top: str, date: str, events: list[d
         f'<aside class="sheet left" role="dialog" id="{edge_id}-sheet" aria-label="{html.escape(label)}">'
         f'<div class="head"><span class="chip">&#128197; {html.escape(date)}</span><span class="chip">{len(events)} созвон.</span><span style="flex:1"></span>'
         f'<label class="ib" for="{edge_id}" role="button" aria-label="закрыть">&#10005;</label></div>'
-        f'<div class="body" style="padding:0"><div class="cal">{evs}</div></div></aside></div>'
+        f'<div class="body" style="padding:0"><div class="cal">{evs}</div></div>'
+        f'<div class="foot"><span style="flex:1"></span><label class="btn close" for="{edge_id}" role="button">Закрыть</label></div></aside></div>'
     )
     return tab, sheet
 
@@ -552,7 +609,7 @@ def compose_note(item: dict, title_key: str, sections: list[tuple[str, str]]) ->
     return "\n".join(lines).strip() + "\n"
 
 
-def table_rows(prefix: str, items: list[dict], notes: list[str], cols: list[str], widths: str, date: str, today: str, heads: list[str], labels: list[str] | None = None) -> list[str]:
+def table_rows(prefix: str, items: list[dict], notes: list[str], cols: list[str], widths: str, date: str, today: str, heads: list[str], labels: list[str] | None = None, section: str = "") -> list[str]:
     """Табличные строки виджета: каждая — label с колонками, клик открывает заметку.
     `labels` — подписи колонок: на узком экране колонки складываются в строки «подпись: значение»."""
     rows = []
@@ -563,7 +620,7 @@ def table_rows(prefix: str, items: list[dict], notes: list[str], cols: list[str]
             f'<span class="{"t h" if j == 0 else "c"}"{f" data-label=\"{html.escape(labels[j])}\"" if j and labels[j] else ""}>{inline(str(it.get(c, "") or "—"))}</span>'
             for j, c in enumerate(cols)
         )
-        rows.append(item(rid, cells, note_panel(f"{date}-{rid}", "right", note, "sheet-none", rid, head)).replace(
+        rows.append(item(rid, cells, note_panel(f"{date}-{rid}", "right", note, "sheet-none", rid, head, section)).replace(
             '<label class="row" for=', f'<label class="row cols" style="grid-template-columns:{widths}" for=', 1))
     return rows
 
@@ -581,14 +638,14 @@ def retro_block(data: dict) -> tuple[str, str]:
     """Слайд ретро: Activity/Tasks с заметками, вкладка «Описать ретро» (красная)."""
     validate_notes(data, ("tasks", "activity"))
     date, today = resolve_today(data, 1)
-    act = note_rows("event", data.get("activity", []), date, today, "event")
-    tasks = note_rows("task", data.get("tasks", []), date, today, "task")
+    act = note_rows("event", data.get("activity", []), date, today, "event", f"Ретро {date} · Activity")
+    tasks = note_rows("task", data.get("tasks", []), date, today, "task", f"Ретро {date} · Tasks")
     note = data.get("note_draft") or ""
     if not note.strip():
         note = f"Ретро {date}\n" + RETRO_TEMPLATE
     elif not note.lstrip().startswith("Ретро"):
         note = f"Ретро {date}\n" + note
-    tab, sheet = edge_note("retro-note", "Описать ретро", "red", "50%", f"{date}-retro", note, head_chips({"done_at": date}, today))
+    tab, sheet = edge_note("retro-note", "Описать ретро", "red", "50%", f"{date}-retro", note, head_chips({"done_at": date}, today), f"Ретро {date}")
     return tab + f'<div class="widgets">{widget("Activity", act)}{widget("Tasks", tasks)}</div>', sheet
 
 
@@ -596,14 +653,14 @@ def today_block(data: dict) -> tuple[str, str]:
     """Слайд «Сегодня»: Задачи/Договорённости с заметками, вкладки «План на сегодня» (зелёная) и «Календарь»."""
     validate_notes(data, ("tasks", "controls"))
     date, today = resolve_today(data, 0)
-    tasks = note_rows("todo", data.get("tasks", []), date, today, "task")
-    controls = note_rows("ctl", data.get("controls", []), date, today, "task")
+    tasks = note_rows("todo", data.get("tasks", []), date, today, "task", "Сегодня · Мои задачи")
+    controls = note_rows("ctl", data.get("controls", []), date, today, "task", "Сегодня · Договорённости")
     plan = data.get("plan_draft") or ""
     if not plan.strip():
         plan = f"План на сегодня {date}\n" + PLAN_TEMPLATE
     elif not plan.lstrip().startswith("План"):
         plan = f"План на сегодня {date}\n" + plan
-    tab1, sheet1 = edge_note("plan-note", "План на сегодня", "green", "38%", f"{date}-plan", plan, head_chips({"due": date}, today))
+    tab1, sheet1 = edge_note("plan-note", "План на сегодня", "green", "38%", f"{date}-plan", plan, head_chips({"due": date}, today), "Сегодня")
     calendar = data.get("calendar", [])
     tab2, sheet2 = calendar_sheet("today-calendar", "Календарь", "62%", date, calendar)
     # ключевые встречи — созвоны с key: true (не ритуалы): время, тема, повестка; клик — заметка
@@ -621,7 +678,7 @@ def today_block(data: dict) -> tuple[str, str]:
                  + (f'<span class="ag">{html.escape(e["agenda"])}</span>' if e.get("agenda") else "") + '</span>'
                  f'<span class="m">{html.escape(", ".join(e.get("with", [])[:2]))}</span>')
         meetings.append(item(rid, label, note_panel(f"{date}-{rid}", "right", e["note"], "sheet-none", rid,
-                                                   head_chips({"due": date, "start": e.get("start", ""), "end": e.get("end", "")}, today))))
+                                                   head_chips({"due": date, "start": e.get("start", ""), "end": e.get("end", "")}, today), "Сегодня · Ключевые встречи")))
     widgets = (f'<div class="widgets">{widget("Мои задачи", tasks)}{widget("Договорённости", controls)}'
                + widget("Ключевые встречи", meetings).replace('class="widget"', 'class="widget wide"', 1) + "</div>")
     return tab1 + tab2 + widgets, sheet1 + sheet2
@@ -634,13 +691,13 @@ def risks_block(data: dict) -> tuple[str, str]:
     notes = [compose_note(r, "title", [("description", "Описание"), ("consequence", "Последствия"), ("owner", "Владелец"), ("status", "Статус")]) for r in risks]
     validate_notes({"risks": [{"note": n} for n in notes]}, ("risks",))
     heads = [head_chips({"priority": r.get("priority"), "due": r.get("due")}, today) if (r.get("priority") or r.get("due")) else "" for r in risks]
-    rows = table_rows("risk", risks, notes, ["kr", "title", "consequence"], "1fr 2fr 2fr", date, today, heads, ["OKR", "Название", "Последствия"])
+    rows = table_rows("risk", risks, notes, ["kr", "title", "consequence"], "1fr 2fr 2fr", date, today, heads, ["OKR", "Название", "Последствия"], "Риски по OKR")
     note = data.get("review_draft") or ""
     if not note.strip():
         note = f"Актуализация рисков {date}\n## Новые\n\n## Изменились\n\n## Сняты\n\n## Нужно решение\n"
     elif not note.lstrip().startswith("Актуализация"):
         note = f"Актуализация рисков {date}\n" + note
-    tab, sheet = edge_note("risks-note", "Актуализация рисков", "amber", "50%", f"{date}-risks", note, head_chips({"due": date}, today))
+    tab, sheet = edge_note("risks-note", "Актуализация рисков", "amber", "50%", f"{date}-risks", note, head_chips({"due": date}, today), "Риски по OKR")
     return tab + f'<div class="widgets one">{table_widget("Риски по OKR", ["OKR", "Название", "Последствия"], "1fr 2fr 2fr", rows)}</div>', sheet
 
 
@@ -675,7 +732,7 @@ def teams_blocks(data: dict) -> list[tuple[str, str, str]]:
         notes = [compose_note(st, "story", [("done", "Что сделано"), ("left", "Что осталось"), ("blockers", "Блокаторы"), ("next_text", "Следующий шаг"), ("pulse", "Пульс спринта")]) for st in stories]
         validate_notes({"stories": [{"note": n} for n in notes]}, ("stories",))
         heads = [head_chips({"due": (st.get("next") or {}).get("date") if isinstance(st.get("next"), dict) else "", "priority": st.get("priority")}, today) for st in stories]
-        rows = table_rows(f"story-{k}", stories, notes, ["story", "done", "left", "next_text"], "1.6fr 1.4fr 1.4fr 1.6fr", date, today, heads, ["История", "Что сделано", "Что осталось", "Следующий шаг"])
+        rows = table_rows(f"story-{k}", stories, notes, ["story", "done", "left", "next_text"], "1.6fr 1.4fr 1.4fr 1.6fr", date, today, heads, ["История", "Что сделано", "Что осталось", "Следующий шаг"], f"Команда {name}")
         comment = team.get("comment_draft") or ""
         if not comment.strip():
             comment = f"Комментарий по команде {name} {date}\n" + team_summary(team)
@@ -689,8 +746,8 @@ def teams_blocks(data: dict) -> list[tuple[str, str, str]]:
             )
         elif not agreements.lstrip().startswith("Договорённости"):
             agreements = f"Договорённости с командой {name}\n" + agreements
-        tab1, sheet1 = edge_note(f"team-{k}-comment", "Комментарий", "green", "38%", f"{date}-team-{k}-comment", comment, head_chips({"due": date}, today))
-        tab2, sheet2 = edge_note(f"team-{k}-agree", "Договорённости", "gray", "62%", f"{date}-team-{k}-agree", agreements, "")
+        tab1, sheet1 = edge_note(f"team-{k}-comment", "Комментарий", "green", "38%", f"{date}-team-{k}-comment", comment, head_chips({"due": date}, today), f"Команда {name}")
+        tab2, sheet2 = edge_note(f"team-{k}-agree", "Договорённости", "gray", "62%", f"{date}-team-{k}-agree", agreements, "", f"Команда {name}")
         sprint = data.get("sprint", "")
         body = tab1 + tab2 + f'<div class="widgets one">{table_widget(f"Истории {sprint}".strip(), ["История", "Что сделано", "Что осталось", "Следующий шаг"], "1.6fr 1.4fr 1.4fr 1.6fr", rows)}</div>'
         out.append((f"Команда {name}", body, sheet1 + sheet2))
@@ -734,23 +791,12 @@ def render(md: str, retro: dict | None = None, today: dict | None = None, risks:
             else:
                 expanded.append((name, body))
         sections = expanded
-    total = len(sections) + 1
+    total = len(sections)
     slides = []
     team_slides = teams_blocks(teams) if teams is not None and teams.get("teams") else []
-    subtitle = " · ".join(
-        (team_slides[int(name[8:])][0] if name.startswith("__team__") else name.split(" — ")[0]) for name, _ in sections
-    )
-    cards = "".join(
-        f'<div class="kpi{" red" if v != "0" and ("просроч" in k or "риск" in k) else ""}"><b>{html.escape(v)}</b><span>{html.escape(k)}</span></div>'
-        for k, v in kpis
-    )
-    slides.append(
-        f'<section class="slide"><h1>{inline(title)}</h1><div class="sub">{html.escape(subtitle)}</div>'
-        f'<div class="kpis">{cards}</div><div class="foot">Стрелки или прокрутка — следующий слайд. {total} слайдов.</div></section>'
-    )
     chrome = ""
     nav: list[tuple[str, str]] = []
-    for n, (name, body) in enumerate(sections, start=2):
+    for n, (name, body) in enumerate(sections, start=1):
         cls = ' class="decisions"' if name.startswith("Нужны решения") else ""
         inner = render_body(body)
         if cls:
@@ -775,14 +821,18 @@ def render(md: str, retro: dict | None = None, today: dict | None = None, risks:
             attr = f' id="team-{k}" data-widgets data-team'
         if ' id="' not in attr:
             attr = f' id="s-{n}"' + attr
-        nav.append((re.search(r'id="([^"]+)"', attr).group(1), nav_label(name)))
+        kind = section_kind(name)
+        label = nav_label(name)
+        nav.append((re.search(r'id="([^"]+)"', attr).group(1), label))
         slides.append(
-            f'<section class="slide"{attr}><header><h2>{inline(name)}</h2><span class="n">{n} / {total}</span></header>{inner}</section>'
+            f'<section class="slide" data-kind="{kind}"{attr}><header><div><span class="kicker">{html.escape(label)}</span><h2>{inline(name)}</h2></div><span class="n">{n} / {total}</span></header>{inner}</section>'
         )
-    navbar = '<nav class="mnav"><a href="#top" class="d">' + html.escape(title.replace("Утро ", "")) + "</a>" + "".join(
+    navbar = f'<nav class="mnav"><a href="#{nav[0][0]}" class="d">' + html.escape(title.replace("Утро ", "")) + "</a>" + "".join(
         f'<a href="#{i}">{html.escape(l)}</a>' for i, l in nav
     ) + "</nav>"
-    slides[0] = slides[0].replace('<section class="slide">', '<section class="slide" id="top">', 1)
+    tail = llm_tail(title)
+    chrome += tail[1]
+    slides.append(tail[0])
     return (
         "<!doctype html>\n<html lang=\"ru\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">"
         f"<title>{html.escape(title)}</title><style>{CSS}</style></head><body>"
