@@ -17,7 +17,8 @@
 
 | Каталог | Что это |
 |---|---|
-| [`skills/morning`](skills/morning/SKILL.md) | навык `/morning`: ретро, план дня, риски по OKR, статус команд, «Нужны решения»; пишет `.md` + сайдкары `.retro/.today/.risks/.teams.json` и рендерит `.html` |
+| [`skills/morning`](skills/morning/SKILL.md) | навык `/morning`: ретро, план дня, риски по OKR, статус команд, «Нужны решения»; берёт снимок `morning-collect`, пишет `.md` + сайдкары `.retro/.today/.risks/.teams.json` и рендерит `.html` |
+| [`tools/morning-collect`](tools/morning-collect/README.md) | снимок данных для `/morning` (`<дата>.data.json`): Backlog.md, календарь, прошлый отчёт, отчёт спринта, PULSE — один детерминированный вызов вместо ~20 шагов модели; кэш на час, чтобы обрыв не стоил пересборки |
 | [`skills/mts-link-sync`](skills/mts-link-sync/SKILL.md) | выгрузка чатов MTS.Link (дельта-курсор, read-only) |
 | [`poh-morning-plugin`](poh-morning-plugin/README.md) | плагин DeepSeek Harness: провайдер навыков `skills/` + правило маршрутизации («план на сегодня» → `/morning`) |
 | [`tools/morning-slides`](tools/morning-slides/README.md) | рендерер отчёта в HTML: слайды на десктопе, лента на узком экране, заметки с блочным редактором, «Комментарии для LLM»; юнит + E2E на Playwright |
@@ -29,6 +30,7 @@
 ```sh
 cd poh-morning-plugin && pnpm install && pnpm build && pnpm test      # плагин: 5 тестов
 cd ../tools/morning-slides && python3 -m unittest discover -s test     # рендер: 13 тестов
+cd ../morning-collect && python3 -m unittest discover -s test           # снимок: 9 тестов
 node test/e2e.mjs                                                       # E2E: Chromium, 6 сценариев
 cd ../mts-link-sync && npm test                                         # коннектор: офлайн-тесты
 python3 ../calendar-today/today.py --status                             # календарь: диагностика
