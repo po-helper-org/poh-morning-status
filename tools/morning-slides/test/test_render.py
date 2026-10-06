@@ -144,6 +144,20 @@ class RetroTest(unittest.TestCase):
         self.assertIn('<h1 class="title"><span class="id">PO-133</span> Переключение 50/50 на Live.Процессинг</h1>', out)
         self.assertIn('<h2>Пульс спринта</h2>', out)
         self.assertIn('<a href="#team-0">Live</a><a href="#team-1">GDS</a><a href="#s-6">Решения</a>', out)
+
+    def test_sprint_report_marker_survives_team_slides(self):
+        # регресс 2026-10-06: при непустом teams.json секция «Статус по командам»
+        # заменялась слайдами команд и маркер [[SPRINT_REPORT:URL]] терялся —
+        # iframe спринт-отчёта не попадал в опубликованный HTML
+        md = SAMPLE.replace(
+            "## Статус по командам\n",
+            "## Статус по командам\n[[SPRINT_REPORT:https://harness.aleksishmanov.ru/tmp/sprint-report-gdslv-livepaas.html]]\n",
+        )
+        self.assertIn("[[SPRINT_REPORT:", md)                 # предусловие: маркер в .md есть
+        out = render(md, None, None, None, self.load("sample.teams.json"))
+        self.assertIn("[[SPRINT_REPORT:https://harness.aleksishmanov.ru/tmp/sprint-report-gdslv-livepaas.html]]", out)
+        self.assertEqual(out.count(' data-team>'), 2)          # слайды команд никуда не делись
+
     def test_no_json_no_widgets(self):
         out = render(SAMPLE, None)
         self.assertNotIn('id="retro-note-sheet"', out)
