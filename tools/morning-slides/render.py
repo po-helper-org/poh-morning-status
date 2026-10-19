@@ -32,7 +32,7 @@ import re
 import sys
 from pathlib import Path
 
-ID_RE = re.compile(r"\b(PO-\d+(?:…PO-\d+|…\d+)?|GDSLV-\d+)\b")
+ID_RE = re.compile(r"\b(PO-\d+(?:…PO-\d+|…\d+)?|[A-Z][A-Z0-9]+-\d+)\b")
 LATE_RE = re.compile(r"\s·\s(−\d+ д)")
 KPI_RE = re.compile(r"^KPI:\s*(.+)$")
 
@@ -783,11 +783,16 @@ def render(md: str, retro: dict | None = None, today: dict | None = None, risks:
         raise ValueError("нет ни одного раздела `## `")
 
     if teams is not None and teams.get("teams"):
-        # «Статус по командам» разворачивается в слайд на команду
+        # «Статус по командам» разворачивается в слайд на команду;
+        # строки-маркеры [[SPRINT_REPORT:URL]] не выбрасываем — пост-обработка
+        # заменяет их на iframe спринт-отчёта (регресс 2026-10-06: маркер терялся)
         expanded: list[tuple[str, list[str]]] = []
         for name, body in sections:
             if name.startswith("Статус по командам"):
                 expanded.extend((f"__team__{k}", []) for k in range(len(teams["teams"])))
+                markers = [l for l in body if "[[SPRINT_REPORT:" in l]
+                if markers:
+                    expanded.append((name, markers))
             else:
                 expanded.append((name, body))
         sections = expanded

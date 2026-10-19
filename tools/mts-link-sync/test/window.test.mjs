@@ -70,7 +70,7 @@ test("dump carries the frontmatter the radar reads, and groups by day", () => {
       { authorId: "u1", createdAt: MSK("2026-09-03T10:00:00+03:00"), text: "первое" },
       { authorId: "u2", createdAt: MSK("2026-09-03T11:00:00+03:00"), text: "второе" },
     ],
-    resolvedAuthors: new Map([["u1", "Романов"], ["u2", "Ананьев"]]),
+    resolvedAuthors: new Map([["u1", "Крылов"], ["u2", "Беляев"]]),
   });
   assert.match(md, /^---\n/);
   assert.match(md, /chat-id: "c1"/);
@@ -78,8 +78,8 @@ test("dump carries the frontmatter the radar reads, and groups by day", () => {
   assert.match(md, /msg-count: 2/);
   assert.match(md, /incremental: true/);
   assert.match(md, /## 2026-09-03/);
-  assert.match(md, /Романов 10:00: первое/);
-  assert.match(md, /Ананьев 11:00: второе/);
+  assert.match(md, /Крылов 10:00: первое/);
+  assert.match(md, /Беляев 11:00: второе/);
 });
 
 test("unresolved author still yields an anchored line", () => {

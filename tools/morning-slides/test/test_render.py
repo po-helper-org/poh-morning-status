@@ -53,10 +53,10 @@ class RetroTest(unittest.TestCase):
         self.assertEqual(out.count('id="sheet-none"'), 1)
         self.assertNotIn('<table>', retro)
         # название строки — первая строка заметки; без id — только название
-        self.assertIn('for="task-0"><span class="check" data-done></span><span class="id">PO-105</span><span class="t">Ишманов + Бордюг: отправить смету за август</span>', out)
+        self.assertIn('for="task-0"><span class="check" data-done></span><span class="id">PO-105</span><span class="t">Орлов + Громов: отправить смету за август</span>', out)
         self.assertIn('for="task-1"><span class="check" data-done></span><span class="t">Заведены 5 инициатив', out)
         # статичный рендер: заголовок-название, чеклист, раздел «Источники» внутри заметки
-        self.assertIn('<h1 class="title">Ишманов + Бордюг: отправить смету за август</h1>', out)
+        self.assertIn('<h1 class="title">Орлов + Громов: отправить смету за август</h1>', out)
         self.assertIn('<li class="todo"><input type="checkbox" checked><span>собрать данные за август</span></li>', out)
         self.assertIn('<h2>Источники</h2>', out)
         self.assertNotIn('class="src"><b>', out)   # отдельного блока «Источник» больше нет
@@ -70,7 +70,7 @@ class RetroTest(unittest.TestCase):
         for h in ('Что было сделано', 'Как это влияет на цели спринта', 'Как это влияет на цели квартала', 'Что не получилось сделать'):
             self.assertIn(f'<h2>{h}</h2>', out)
         # markdown-исходник для редактора лежит в скрытом textarea и экранирован
-        self.assertIn('<textarea class="src" hidden>Ишманов + Бордюг', out)
+        self.assertIn('<textarea class="src" hidden>Орлов + Громов', out)
     def test_source_section_required(self):
         bad = {"date": "2026-09-10", "tasks": [{"note": "Фикс вебхука\n- сделано"}], "activity": []}
         with self.assertRaises(ValueError):
@@ -134,16 +134,30 @@ class RetroTest(unittest.TestCase):
         live = out.split('id="team-0" data-widgets data-team>')[1].split('</section>')[0]
         self.assertIn('data-kind="team" id="team-0"', out)
         self.assertIn('<span>История</span><span>Что сделано</span><span>Что осталось</span><span>Следующий шаг</span>', live)
-        self.assertIn('2026-09-15 · проверить долю ошибок &lt; 0.5% в Grafana · Юмшанов', live)
+        self.assertIn('2026-09-15 · проверить долю ошибок &lt; 0.5% в Grafana · Лебедев', live)
         self.assertIn('for="team-0-comment"', live); self.assertIn('for="team-0-agree"', live)
         self.assertIn('<h1 class="title">Комментарий по команде Live 2026-09-11</h1>', out)
-        self.assertIn('Какие есть блокаторы: ждём спецификацию TicketsCloud', out)
+        self.assertIn('Какие есть блокаторы: ждём спецификацию ÐÐ°ÑÑÐ½ÑÑ', out)
         self.assertIn('<h1 class="title">Договорённости с командой Live</h1>', out)
-        self.assertIn('checked><span>доступ к логам MRS · от Новиков · 2026-09-12 · для команда Live</span>', out)
-        self.assertIn('<input type="checkbox"><span>схема БД Live.Процессинг · от Юмшанов · 2026-09-15 · для Ишманов</span>', out)
+        self.assertIn('checked><span>доступ к логам MRS · от Комаров · 2026-09-12 · для команда Live</span>', out)
+        self.assertIn('<input type="checkbox"><span>схема БД Live.Процессинг · от Лебедев · 2026-09-15 · для Орлов</span>', out)
         self.assertIn('<h1 class="title"><span class="id">PO-133</span> Переключение 50/50 на Live.Процессинг</h1>', out)
         self.assertIn('<h2>Пульс спринта</h2>', out)
         self.assertIn('<a href="#team-0">Live</a><a href="#team-1">GDS</a><a href="#s-6">Решения</a>', out)
+
+    def test_sprint_report_marker_survives_team_slides(self):
+        # регресс 2026-10-06: при непустом teams.json секция «Статус по командам»
+        # заменялась слайдами команд и маркер [[SPRINT_REPORT:URL]] терялся —
+        # iframe спринт-отчёта не попадал в опубликованный HTML
+        md = SAMPLE.replace(
+            "## Статус по командам\n",
+            "## Статус по командам\n[[SPRINT_REPORT:https://example.com/tmp/sprint-report-team-report.html]]\n",
+        )
+        self.assertIn("[[SPRINT_REPORT:", md)                 # предусловие: маркер в .md есть
+        out = render(md, None, None, None, self.load("sample.teams.json"))
+        self.assertIn("[[SPRINT_REPORT:https://example.com/tmp/sprint-report-team-report.html]]", out)
+        self.assertEqual(out.count(' data-team>'), 2)          # слайды команд никуда не делись
+
     def test_no_json_no_widgets(self):
         out = render(SAMPLE, None)
         self.assertNotIn('id="retro-note-sheet"', out)
