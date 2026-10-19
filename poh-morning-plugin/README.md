@@ -45,9 +45,9 @@
 
 Пустой `triggers` выключает секцию промпта, провайдер навыков остаётся.
 
-## Установка в профиль (workspace ishmanov-cortex)
+## Установка в профиль (workspace my-workspace)
 
-Штатная `dsh plugin add` сломана (issue #37 kibarik/mts-po-workspace), поэтому вручную:
+Штатная `dsh plugin add` сломана (issue #37 my-org/my-workspace), поэтому вручную:
 
 ```sh
 cd poh-morning-plugin && pnpm install && pnpm build

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Созвоны PO на день из Google-календаря «MTS Exchange» (read-only).
+"""Созвоны PO на день из Google-календаря «Corp Exchange» (read-only).
 
 Календарь наполняет poh-scheduller (Exchange → Google, односторонне). Здесь только
 чтение: токен, client id/secret и id календаря берутся из чекаута poh-scheduller,

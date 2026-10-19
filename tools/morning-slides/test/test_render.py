@@ -53,10 +53,10 @@ class RetroTest(unittest.TestCase):
         self.assertEqual(out.count('id="sheet-none"'), 1)
         self.assertNotIn('<table>', retro)
         # название строки — первая строка заметки; без id — только название
-        self.assertIn('for="task-0"><span class="check" data-done></span><span class="id">PO-105</span><span class="t">Орлов + Громов: отправить смету за август</span>', out)
+        self.assertIn('for="task-0"><span class="check" data-done></span><span class="id">PO-105</span><span class="t">Тихонов + Белкин: отправить смету за август</span>', out)
         self.assertIn('for="task-1"><span class="check" data-done></span><span class="t">Заведены 5 инициатив', out)
         # статичный рендер: заголовок-название, чеклист, раздел «Источники» внутри заметки
-        self.assertIn('<h1 class="title">Орлов + Громов: отправить смету за август</h1>', out)
+        self.assertIn('<h1 class="title">Тихонов + Белкин: отправить смету за август</h1>', out)
         self.assertIn('<li class="todo"><input type="checkbox" checked><span>собрать данные за август</span></li>', out)
         self.assertIn('<h2>Источники</h2>', out)
         self.assertNotIn('class="src"><b>', out)   # отдельного блока «Источник» больше нет
@@ -70,7 +70,7 @@ class RetroTest(unittest.TestCase):
         for h in ('Что было сделано', 'Как это влияет на цели спринта', 'Как это влияет на цели квартала', 'Что не получилось сделать'):
             self.assertIn(f'<h2>{h}</h2>', out)
         # markdown-исходник для редактора лежит в скрытом textarea и экранирован
-        self.assertIn('<textarea class="src" hidden>Орлов + Громов', out)
+        self.assertIn('<textarea class="src" hidden>Тихонов + Белкин', out)
     def test_source_section_required(self):
         bad = {"date": "2026-09-10", "tasks": [{"note": "Фикс вебхука\n- сделано"}], "activity": []}
         with self.assertRaises(ValueError):
@@ -92,7 +92,7 @@ class RetroTest(unittest.TestCase):
         self.assertIn('<label class="edge" data-color="blue" style="top:62%" for="today-calendar"', out)
         self.assertIn('id="today-calendar-sheet"', out)
         self.assertEqual(out.count('<div class="ev">'), 2)                      # календарь в панели
-        self.assertIn('<div class="tt">VK: бюджет Q4</div>', out)
+        self.assertIn('<div class="tt">PartnerV: бюджет Q4</div>', out)
         slide = out.split('id="today" data-widgets data-today>')[1].split('</section>')[0]
         self.assertNotIn('Созвоны', slide)                                      # созвонов на слайде нет
         self.assertNotIn('<table>', slide)
@@ -110,7 +110,7 @@ class RetroTest(unittest.TestCase):
         slide = out.split('id="today" data-widgets data-today>')[1].split('</section>')[0]
         self.assertIn('<h4><span>Мои задачи</span>', slide)
         self.assertIn('<h4><span>Ключевые встречи</span><span>1</span></h4>', slide)   # дейлик (ритуал) не попал
-        self.assertIn('VK: бюджет Q4', slide); self.assertNotIn('Дейлик GDS/Live', slide)
+        self.assertIn('PartnerV: бюджет Q4', slide); self.assertNotIn('Дейлик TeamA/TeamB', slide)
         self.assertIn('<span class="ag">Бюджет под переезд виджета', slide)
         self.assertIn('<h2>Что получить</h2>', out)
     def test_risks_slide(self):
@@ -119,31 +119,31 @@ class RetroTest(unittest.TestCase):
         self.assertIn('<label class="edge" data-color="amber" style="top:50%" for="risks-note"', slide)
         self.assertIn('<span>OKR</span><span>Название</span><span>Последствия</span>', slide)
         self.assertEqual(slide.count('<label class="row cols"'), 3)
-        self.assertIn('<span class="t h"><span class="id">PO-78</span></span><span class="c" data-label="Название">Вебхук заказов не работает, ломает CJM у VK</span><span class="c" data-label="Последствия">заказы VK без статуса', slide)
+        self.assertIn('<span class="t h"><span class="id">PO-78</span></span><span class="c" data-label="Название">Вебхук заказов не работает, ломает CJM у PartnerV</span><span class="c" data-label="Последствия">заказы PartnerV без статуса', slide)
         self.assertIn('<span class="t h">—</span>', slide)   # риск без KR
-        self.assertIn('<h1 class="title">Вебхук заказов не работает, ломает CJM у VK</h1>', out)
+        self.assertIn('<h1 class="title">Вебхук заказов не работает, ломает CJM у PartnerV</h1>', out)
         self.assertIn('<h2>Последствия</h2>', out); self.assertIn('<h2>Источники</h2>', out)
         self.assertIn('<h1 class="title">Актуализация рисков 2026-09-11</h1>', out)
         self.assertIn('<h2>Нужно решение</h2>', out)
     def test_team_slides(self):
         out = render(SAMPLE, self.data(), None, None, self.load("sample.teams.json"))
         self.assertEqual(out.count(' data-team>'), 2)                          # слайд на команду
-        self.assertIn('<h2>Команда Live</h2>', out); self.assertIn('<h2>Команда GDS</h2>', out)
-        self.assertIn('<a href="#team-0">Live</a><a href="#team-1">GDS</a>', out)
+        self.assertIn('<h2>Команда TeamB</h2>', out); self.assertIn('<h2>Команда TeamA</h2>', out)
+        self.assertIn('<a href="#team-0">TeamB</a><a href="#team-1">TeamA</a>', out)
         self.assertNotIn('НЕТ ДАННЫХ: историй', out)
         live = out.split('id="team-0" data-widgets data-team>')[1].split('</section>')[0]
         self.assertIn('data-kind="team" id="team-0"', out)
         self.assertIn('<span>История</span><span>Что сделано</span><span>Что осталось</span><span>Следующий шаг</span>', live)
-        self.assertIn('2026-09-15 · проверить долю ошибок &lt; 0.5% в Grafana · Лебедев', live)
+        self.assertIn('2026-09-15 · проверить долю ошибок &lt; 0.5% в Grafana · Фролов', live)
         self.assertIn('for="team-0-comment"', live); self.assertIn('for="team-0-agree"', live)
-        self.assertIn('<h1 class="title">Комментарий по команде Live 2026-09-11</h1>', out)
+        self.assertIn('<h1 class="title">Комментарий по команде TeamB 2026-09-11</h1>', out)
         self.assertIn('Какие есть блокаторы: ждём спецификацию ÐÐ°ÑÑÐ½ÑÑ', out)
-        self.assertIn('<h1 class="title">Договорённости с командой Live</h1>', out)
-        self.assertIn('checked><span>доступ к логам MRS · от Комаров · 2026-09-12 · для команда Live</span>', out)
-        self.assertIn('<input type="checkbox"><span>схема БД Live.Процессинг · от Лебедев · 2026-09-15 · для Орлов</span>', out)
-        self.assertIn('<h1 class="title"><span class="id">PO-133</span> Переключение 50/50 на Live.Процессинг</h1>', out)
+        self.assertIn('<h1 class="title">Договорённости с командой TeamB</h1>', out)
+        self.assertIn('checked><span>доступ к логам UnitB · от Мартынов · 2026-09-12 · для команда TeamB</span>', out)
+        self.assertIn('<input type="checkbox"><span>схема БД TeamB.Процессинг · от Фролов · 2026-09-15 · для Тихонов</span>', out)
+        self.assertIn('<h1 class="title"><span class="id">PO-133</span> Переключение 50/50 на TeamB.Процессинг</h1>', out)
         self.assertIn('<h2>Пульс спринта</h2>', out)
-        self.assertIn('<a href="#team-0">Live</a><a href="#team-1">GDS</a><a href="#s-6">Решения</a>', out)
+        self.assertIn('<a href="#team-0">TeamB</a><a href="#team-1">TeamA</a><a href="#s-6">Решения</a>', out)
 
     def test_sprint_report_marker_survives_team_slides(self):
         # регресс 2026-10-06: при непустом teams.json секция «Статус по командам»

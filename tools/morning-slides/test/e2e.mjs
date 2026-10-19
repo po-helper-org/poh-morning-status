@@ -80,8 +80,8 @@ async function scenario(browser, { javaScriptEnabled, viewport = { width: 1200, 
   const sheet0 = page.locator('#task-0 ~ aside.sheet')
   await sheet0.waitFor({ state: 'visible' })
   const t0 = await noteText('#task-0 ~ aside.sheet .body')
-  assert.match(t0, /^Орлов \+ Громов: отправить смету за август/, `${label}: название первой строкой`)
-  assert.match(t0, /Сделано:.*отправлена Громову/s, `${label}: текст заметки`)
+  assert.match(t0, /^Тихонов \+ Белкин: отправить смету за август/, `${label}: название первой строкой`)
+  assert.match(t0, /Сделано:.*отправлена Белкину/s, `${label}: текст заметки`)
   assert.match(t0, /Источники[\s\S]*backlog\/tasks\/po-105/, `${label}: источники внутри заметки`)
   assert.equal(await sheet0.locator('div.src, .lbl-edit').count(), 0, `${label}: отдельного блока источника и кнопок режима нет`)
   const closeBtn = sheet0.locator('.foot label.btn.close')
@@ -147,7 +147,7 @@ async function scenario(browser, { javaScriptEnabled, viewport = { width: 1200, 
   await page.locator('label.row[for="event-0"]').click()
   const ev = page.locator('#event-0 ~ aside.sheet')
   await ev.waitFor({ state: 'visible' })
-  assert.match(await noteText('#event-0 ~ aside.sheet .body'), /^VK: переезд виджета[\s\S]*Итог[\s\S]*Источники[\s\S]*MTS Exchange/, `${label}: заметка события`)
+  assert.match(await noteText('#event-0 ~ aside.sheet .body'), /^PartnerV: переезд виджета[\s\S]*Итог[\s\S]*Источники[\s\S]*Corp Exchange/, `${label}: заметка события`)
   await ev.locator('.head label[for="sheet-none"]').click()
 
   // 9. С JS правки переживают перезагрузку.
@@ -170,7 +170,7 @@ async function scenario(browser, { javaScriptEnabled, viewport = { width: 1200, 
   if (javaScriptEnabled) {
     const prompt = await llm.locator('#llm-prompt').inputValue()
     assert.match(prompt, /Скорректируй утренний отчёт от 2026-09-11/, 'шапка промта')
-    assert.match(prompt, /## Ретро 2026-09-10 · Tasks · «Орлов \+ Громов: отправить смету за август — ок»/, 'правка привязана к разделу и заметке')
+    assert.match(prompt, /## Ретро 2026-09-10 · Tasks · «Тихонов \+ Белкин: отправить смету за август — ок»/, 'правка привязана к разделу и заметке')
     assert.match(prompt, /\+ - \[x\] получить подтверждение/, 'отмеченный чеклист попал как правка')
     assert.match(prompt, /\+ - \[ \] новый пункт/, 'добавленный пункт попал')
     assert.match(prompt, /\+ ## Итог/, 'добавленный заголовок попал')
@@ -209,7 +209,7 @@ async function scenario(browser, { javaScriptEnabled, viewport = { width: 1200, 
   await page.locator('label.edge[for="today-calendar"]').click()
   assert.equal(await visible(page, '#today-calendar-sheet'), true)
   assert.equal(await page.locator('#today-calendar-sheet .ev').count(), 2)
-  assert.match(await page.locator('#today-calendar-sheet .ev').first().innerText(), /11:00–11:30[\s\S]*VK: бюджет Q4[\s\S]*Лебедев[\s\S]*переезд виджета/)
+  assert.match(await page.locator('#today-calendar-sheet .ev').first().innerText(), /11:00–11:30[\s\S]*PartnerV: бюджет Q4[\s\S]*Фролов[\s\S]*переезд виджета/)
   await page.locator('#today-calendar-sheet .head label[for="today-calendar"]').click()
   assert.equal(await visible(page, '#today-calendar-sheet'), false)
 
@@ -217,7 +217,7 @@ async function scenario(browser, { javaScriptEnabled, viewport = { width: 1200, 
   await page.locator('label.row[for="todo-0"]').click()
   const td = page.locator('#todo-0 ~ aside.sheet')
   await td.waitFor({ state: 'visible' })
-  assert.match(await noteText('#todo-0 ~ aside.sheet .body'), /^Сетевая доступность для GDS[\s\S]*Источники/)
+  assert.match(await noteText('#todo-0 ~ aside.sheet .body'), /^Сетевая доступность для TeamA[\s\S]*Источники/)
   assert.equal(await td.locator('.head .flag[data-p="high"]').count(), 1)
   assert.match(await td.locator('.head .chip').first().innerText(), /Вчера/)
   assert.equal(await td.locator('.body [contenteditable="true"]').count(), 1, `${label}: заметка задачи редактируется сразу`)
@@ -229,9 +229,9 @@ async function scenario(browser, { javaScriptEnabled, viewport = { width: 1200, 
   // 13a. Ключевые встречи на главном экране: только не-ритуалы, с повесткой; клик — заметка.
   await page.locator('#today').scrollIntoViewIfNeeded()
   assert.equal(await page.locator('label.row[for^="meet-"]').count(), 1, `${label}: одна ключевая встреча (дейлик не показан)`)
-  assert.match(await page.locator('label.row[for="meet-0"]').innerText(), /11:00–11:30[\s\S]*VK: бюджет Q4[\s\S]*Бюджет под переезд виджета/)
+  assert.match(await page.locator('label.row[for="meet-0"]').innerText(), /11:00–11:30[\s\S]*PartnerV: бюджет Q4[\s\S]*Бюджет под переезд виджета/)
   await page.locator('label.row[for="meet-0"]').click()
-  assert.match(await noteText('#meet-0 ~ aside.sheet .body'), /^VK: бюджет Q4[\s\S]*Повестка[\s\S]*Что получить[\s\S]*Источники/)
+  assert.match(await noteText('#meet-0 ~ aside.sheet .body'), /^PartnerV: бюджет Q4[\s\S]*Повестка[\s\S]*Что получить[\s\S]*Источники/)
   await page.locator('#meet-0 ~ aside.sheet .head label[for="sheet-none"]').click()
 
   // ——— Слайд «Риски» ———
@@ -252,24 +252,24 @@ async function scenario(browser, { javaScriptEnabled, viewport = { width: 1200, 
   // ——— Слайды команд: один слайд — одна команда ———
   assert.equal(await page.locator('.slide[data-team]').count(), 2, `${label}: два слайда команд`)
   await page.locator('#team-0').scrollIntoViewIfNeeded()
-  assert.equal(await page.locator('#team-0 > header h2').textContent(), 'Команда Live')
+  assert.equal(await page.locator('#team-0 > header h2').textContent(), 'Команда TeamB')
   assert.equal(await page.locator('#team-0 .cols-head span').allTextContents().then(a => a.join('|')), 'История|Что сделано|Что осталось|Следующий шаг')
-  assert.match(await page.locator('label.row[for="story-0-0"]').innerText(), /PO-133[\s\S]*раскатано на 50%[\s\S]*мониторинг 3 дня[\s\S]*2026-09-15 · проверить долю ошибок < 0.5% в Grafana · Лебедев/)
+  assert.match(await page.locator('label.row[for="story-0-0"]').innerText(), /PO-133[\s\S]*раскатано на 50%[\s\S]*мониторинг 3 дня[\s\S]*2026-09-15 · проверить долю ошибок < 0.5% в Grafana · Фролов/)
   await page.locator('label.row[for="story-0-0"]').click()
   assert.match(await noteText('#story-0-0 ~ aside.sheet .body'), /^PO-133 Переключение 50\/50[\s\S]*Что сделано[\s\S]*Что осталось[\s\S]*Блокаторы[\s\S]*Следующий шаг[\s\S]*Пульс спринта[\s\S]*Источники/, `${label}: заметка истории за спринт`)
   await page.locator('#story-0-0 ~ aside.sheet .head label[for="sheet-none"]').click()
   await page.locator('label.edge[for="team-0-comment"]').click()
   const cm = await noteText('#team-0-comment-sheet .body')
-  assert.match(cm, /^Комментарий по команде Live[\s\S]*PO-133[\s\S]*Что уже сделано: раскатано[\s\S]*Что осталось: мониторинг[\s\S]*Какие есть блокаторы: нет[\s\S]*Какой следующий шаг: 2026-09-15[\s\S]*PO-134[\s\S]*ждём спецификацию ÐÐ°ÑÑÐ½ÑÑ/, `${label}: сводка по историям по умолчанию`)
+  assert.match(cm, /^Комментарий по команде TeamB[\s\S]*PO-133[\s\S]*Что уже сделано: раскатано[\s\S]*Что осталось: мониторинг[\s\S]*Какие есть блокаторы: нет[\s\S]*Какой следующий шаг: 2026-09-15[\s\S]*PO-134[\s\S]*ждём спецификацию ÐÐ°ÑÑÐ½ÑÑ/, `${label}: сводка по историям по умолчанию`)
   await page.locator('#team-0-comment-sheet .head label[for="team-0-comment"]').click()
   await page.locator('label.edge[for="team-0-agree"]').click()
   const ag = page.locator('#team-0-agree-sheet')
-  assert.match(await noteText('#team-0-agree-sheet .body'), /^Договорённости с командой Live[\s\S]*схема БД Live\.Процессинг · от Лебедев · 2026-09-15 · для Орлов[\s\S]*доступ к логам MRS/)
+  assert.match(await noteText('#team-0-agree-sheet .body'), /^Договорённости с командой TeamB[\s\S]*схема БД TeamB\.Процессинг · от Фролов · 2026-09-15 · для Тихонов[\s\S]*доступ к логам UnitB/)
   const boxes = ag.locator('.body input[type="checkbox"], .body .box')
   assert.equal(await boxes.count(), 2, `${label}: реестр — чеклист`)
   await page.locator('#team-0-agree-sheet .head label[for="team-0-agree"]').click()
   await page.locator('#team-1').scrollIntoViewIfNeeded()
-  assert.equal(await page.locator('#team-1 > header h2').textContent(), 'Команда GDS')
+  assert.equal(await page.locator('#team-1 > header h2').textContent(), 'Команда TeamA')
   assert.equal(await page.locator('#team-1 label.row').count(), 1)
 
   // 13. Тема едина: слайды тёмные, как панели.
@@ -296,7 +296,7 @@ async function mobile(browser, { javaScriptEnabled, viewport }) {
   assert.equal(await page.locator('.deck').evaluate(el => getComputedStyle(el).scrollSnapType), 'none', `${label}: без scroll-snap`)
   const nav = page.locator('nav.mnav')
   assert.equal(await nav.evaluate(el => getComputedStyle(el).display), 'flex', `${label}: навигация чипами`)
-  assert.equal(await nav.locator('a').allTextContents().then(a => a.join('|')), '2026-09-11|Ретро|Сегодня|Риски|Live|GDS|Решения')
+  assert.equal(await nav.locator('a').allTextContents().then(a => a.join('|')), '2026-09-11|Ретро|Сегодня|Риски|TeamB|TeamA|Решения')
   assert.equal(await nav.evaluate(el => getComputedStyle(el).position), 'sticky')
   assert.equal(await page.locator('h1').filter({ hasText: /^Утро/ }).count(), 0, `${label}: титула нет`)
 

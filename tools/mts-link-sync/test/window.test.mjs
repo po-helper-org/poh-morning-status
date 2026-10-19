@@ -57,7 +57,7 @@ test("timestamps render in MSK regardless of host timezone", () => {
 });
 
 test("chat names are made filesystem-safe without becoming unrecognizable", () => {
-  assert.equal(sanitize("LV/GDS: релиз"), "LV-GDS- релиз");
+  assert.equal(sanitize("LV/TeamA: релиз"), "LV-TeamA- релиз");
   assert.equal(sanitize(""), "Без названия");
   assert.ok(sanitize("x".repeat(200)).length <= 80);
 });
@@ -70,7 +70,7 @@ test("dump carries the frontmatter the radar reads, and groups by day", () => {
       { authorId: "u1", createdAt: MSK("2026-09-03T10:00:00+03:00"), text: "первое" },
       { authorId: "u2", createdAt: MSK("2026-09-03T11:00:00+03:00"), text: "второе" },
     ],
-    resolvedAuthors: new Map([["u1", "Крылов"], ["u2", "Беляев"]]),
+    resolvedAuthors: new Map([["u1", "Власов"], ["u2", "Щербаков"]]),
   });
   assert.match(md, /^---\n/);
   assert.match(md, /chat-id: "c1"/);
@@ -78,8 +78,8 @@ test("dump carries the frontmatter the radar reads, and groups by day", () => {
   assert.match(md, /msg-count: 2/);
   assert.match(md, /incremental: true/);
   assert.match(md, /## 2026-09-03/);
-  assert.match(md, /Крылов 10:00: первое/);
-  assert.match(md, /Беляев 11:00: второе/);
+  assert.match(md, /Власов 10:00: первое/);
+  assert.match(md, /Щербаков 11:00: второе/);
 });
 
 test("unresolved author still yields an anchored line", () => {

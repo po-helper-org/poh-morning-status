@@ -30,7 +30,7 @@ TASKS = [
     task("PO-78", type="okr", milestone="m-4"),
     task("PO-30", type="bft", status="DEEP-REVIEW"),
     task("PO-31", type="bft", status="Done"),
-    task("PO-40", type="story", labels=["team:Live", "sprint:2026Q3-S5"]),
+    task("PO-40", type="story", labels=["team:TeamB", "sprint:2026Q3-S5"]),
     task("PO-50", labels=["okr-kind:task"], created="2026-09-20T09:00:00Z", updated="2026-09-20T09:00:00Z"),  # заведена вчера
 ]
 
@@ -68,7 +68,7 @@ class ClassifyTest(unittest.TestCase):
 
     def test_misc(self):
         self.assertEqual(self.d["bft"], {"open_total": 1, "by_status": {"DEEP-REVIEW": 1}})
-        self.assertEqual(self.d["stories"][0]["team"], "Live")
+        self.assertEqual(self.d["stories"][0]["team"], "TeamB")
         self.assertEqual(self.d["stories"][0]["sprint"], "2026Q3-S5")
         self.assertEqual(list(self.d["krs"]), ["PO-78"])
         self.assertEqual(self.d["totals"]["task_open"], 5)
@@ -86,7 +86,7 @@ class HelpersTest(unittest.TestCase):
             p.parent.mkdir(parents=True)
             p.write_text("# Утро 2026-09-11\nKPI: просрочено 2 · сегодня 4 · рисков без владельца 7 · закрыто вчера 0\n\n"
                          "## Сегодня\n### Созвоны\n| Время |\n|---|\n| 11:00 |\n### Задачи\n| Задача | Кому · что | KR |\n|---|---|---|\n"
-                         "| PO-99 сетевая · −1 д | — | — |\n| PO-105 смета | Громов | PO-78 |\n\n## Статус по командам\n| a |\n\n## Нужны решения\n- x\n")
+                         "| PO-99 сетевая · −1 д | — | — |\n| PO-105 смета | Белкин | PO-78 |\n\n## Статус по командам\n| a |\n\n## Нужны решения\n- x\n")
             r = parse_prev_report(p)
         self.assertEqual(r["plan_ids"], ["PO-99", "PO-105"])
         self.assertEqual(r["date"], "2026-09-11")

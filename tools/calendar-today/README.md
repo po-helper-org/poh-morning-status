@@ -1,6 +1,6 @@
 # calendar-today
 
-Созвоны PO на день из Google-календаря «MTS Exchange», который наполняет
+Созвоны PO на день из Google-календаря «Corp Exchange», который наполняет
 [poh-scheduller](https://github.com/po-helper-org/poh-scheduller) (Exchange → Google,
 односторонне). Только чтение; в Google и Exchange ничего не пишется.
 

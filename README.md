@@ -22,7 +22,7 @@
 | [`skills/mts-link-sync`](skills/mts-link-sync/SKILL.md) | выгрузка чатов MTS.Link (дельта-курсор, read-only) |
 | [`poh-morning-plugin`](poh-morning-plugin/README.md) | плагин DeepSeek Harness: провайдер навыков `skills/` + правило маршрутизации («план на сегодня» → `/morning`) |
 | [`tools/morning-slides`](tools/morning-slides/README.md) | рендерер отчёта в HTML: слайды на десктопе, лента на узком экране, заметки с блочным редактором, «Комментарии для LLM»; юнит + E2E на Playwright |
-| [`tools/calendar-today`](tools/calendar-today/README.md) | созвоны дня из Google-календаря «MTS Exchange» (poh-scheduller), read-only |
+| [`tools/calendar-today`](tools/calendar-today/README.md) | созвоны дня из Google-календаря «Corp Exchange» (poh-scheduller), read-only |
 | [`tools/mts-link-sync`](tools/mts-link-sync/README.md) | коннектор MTS.Link (WS, SSO-сессия PO) |
 
 ## Как проверить
