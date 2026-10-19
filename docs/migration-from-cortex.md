@@ -1,17 +1,17 @@
-# Миграция коннектора MTS.Link из ishmanov-cortex
+# Миграция коннектора MTS.Link из my-workspace
 
 Статус: коннектор перенесён, предшественник ещё на месте. Документ фиксирует найденный
 дефект, различия и порядок вывода старого инструмента из эксплуатации.
 
 ## Найденный дефект
 
-`ishmanov-cortex/tools/mts-link-chat-sync` на этой машине **нерабочий, но об этом не
+`my-workspace/tools/mts-link-chat-sync` на этой машине **нерабочий, но об этом не
 сообщает**.
 
 Проверка:
 
 ```
-$ cd ishmanov-cortex/tools/mts-link-chat-sync
+$ cd my-workspace/tools/mts-link-chat-sync
 $ node chats.mjs --list-watched
 Реестр пуст. Сначала добавь чаты: --list-chats → --add (см. README).
 $ echo $?
@@ -67,9 +67,9 @@ $ echo $?
 
 1. Прогнать `--pull --since-last` преемником, убедиться, что дампы и курсор пишутся в волт.
 2. Сверить вывод с последней выгрузкой старого инструмента (`2026-07-14..2026-07-29`).
-3. Переключить скиллы `/chat-sync` и `/chat-watch` в `ishmanov-cortex/.claude/skills/` на
+3. Переключить скиллы `/chat-sync` и `/chat-watch` в `my-workspace/.claude/skills/` на
    новый путь и команды.
-4. Удалить `ishmanov-cortex/tools/mts-link-chat-sync`, оставив в README волта ссылку сюда.
+4. Удалить `my-workspace/tools/mts-link-chat-sync`, оставив в README волта ссылку сюда.
 
 До шага 3 в волте живут два инструмента с пересекающейся ответственностью. Это осознанный
 временный компромисс: скиллы `/chat-sync`, `/link-radar` и `/daily-review` завязаны на

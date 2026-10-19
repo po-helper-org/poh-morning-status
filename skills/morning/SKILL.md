@@ -125,8 +125,8 @@ python3 <poh-morning-status>/tools/morning-collect/collect.py            # --dat
   Таблиц по ретро нет.
 - **Задачи сегодня** — `tasks_today`: `okr-kind:task` (и без kind), открытые,
   `due ≤ today`; `overdue_days > 0` — просрочена, пишется `· −N д`. «Кому / что
-  отправить» — из заголовка и `details[id].description` (`Орлов + Громов:
-  отправить смету` → кому: Громов, что: смета за август). Нет адресата — «—», не
+  отправить» — из заголовка и `details[id].description` (`Тихонов + Белкин:
+  отправить смету` → кому: Белкин, что: смета за август). Нет адресата — «—», не
   додумывать.
 - **Ближайшие договорённости** — `controls_soon`: `okr-kind:control`, открытые,
   просроченные + `due` в 7 дней + без срока. «У кого» — из заголовка/`assignees`;
@@ -163,22 +163,22 @@ python3 <poh-morning-status>/tools/morning-collect/collect.py            # --dat
 KPI: просрочено {n} · сегодня {m} · рисков без владельца {r} · закрыто вчера {d}
 
 ## Ретро {yesterday} — план {p} / сделано {s} / перенесено {t} / сорвано {f}
-- PO-105 · смета за август отправлена Громову
+- PO-105 · смета за август отправлена Белкину
 - заведены 5 инициатив: цифровой рубль, VTB.PAY, БП-схемы (PO-128…132)
-- созвонов: 2 (VK: переезд виджета; смета за август)
+- созвонов: 2 (PartnerV: переезд виджета; смета за август)
 (в слайдах этот раздел — виджеты Activity/Tasks из retro.json; список здесь — для чата)
 
 ## Сегодня
 ### Созвоны
 | Время | С кем | Повестка |
 |---|---|---|
-| 11:00–11:30 | Громов, Лебедев | смета, вебхук |
+| 11:00–11:30 | Белкин, Фролов | смета, вебхук |
 (или одна строка: [НЕТ ДАННЫХ: календарь — <причина из stderr>])
 ### Задачи
 | Задача | Кому · что | KR |
 |---|---|---|
-| PO-99 сетевая доступность GDS · −1 д | назначить исполнителя | — |
-| PO-105 смета за август | Громов · отправить смету | PO-78 |
+| PO-99 сетевая доступность TeamA · −1 д | назначить исполнителя | — |
+| PO-105 смета за август | Белкин · отправить смету | PO-78 |
 
 ## Ближайшие договорённости
 | Договорённость | У кого | Проверить | How-to-demo | Срок |
@@ -186,16 +186,16 @@ KPI: просрочено {n} · сегодня {m} · рисков без вл�
 | PO-117 баг виджета Музыки | — | PRJ-1897 закрыт? | — | 16.09 |
 
 ## Риски по OKR
-**PO-78 [RESEARCH] замена Live-виджета на TL — 6, без владельца: 6**
+**PO-78 [RESEARCH] замена TeamB-виджета на AT — 6, без владельца: 6**
 | Риск | Приоритет | Владелец |
 |---|---|---|
-| PO-112 вебхук ломает CJM VK | HIGH | — |
+| PO-112 вебхук ломает CJM PartnerV | HIGH | — |
 **без KR — 0**
 
 ## Статус по командам
 | Команда | История | Статус | С прошлого отчёта | Осталось |
 |---|---|---|---|---|
-| Live | PO-133 переключение 50/50 | In Progress | [Факт] 50% | мониторинг |
+| TeamB | PO-133 переключение 50/50 | In Progress | [Факт] 50% | мониторинг |
 (или: [НЕТ ДАННЫХ: историй type: story нет], строка
 `GROUND/RESULTS/<file> · <команда> · <спринт> · <итог числами>` и таблица
 | Стрим | Статус | из рисков отчёта спринта, до 3 строк)
@@ -236,9 +236,9 @@ sources: [backlog.md, calendar|none, GROUND/RESULTS/<sprint-report>|none]
   "date": "{yesterday}",
   "note_draft": "Ретро {yesterday}\n## Что было сделано\n- [x] … (PO-…)\n\n## Как это влияет на цели спринта\n- …\n\n## Как это влияет на цели квартала\n- …\n\n## Что не получилось сделать\n- [ ] … (PO-…)\n",
   "activity": [{"start": "11:00", "end": "11:30", "with": ["…"],
-                "note": "VK: переезд виджета\n## Итог\n- …\n\n## Решения\n- [ ] … (PO-…)\n\n## Источники\n- календарь MTS Exchange, событие {yesterday} 11:00 (tools/calendar-today)\n- повестка события: «…»\n"}],
+                "note": "PartnerV: переезд виджета\n## Итог\n- …\n\n## Решения\n- [ ] … (PO-…)\n\n## Источники\n- календарь Corp Exchange, событие {yesterday} 11:00 (tools/calendar-today)\n- повестка события: «…»\n"}],
   "tasks": [{"id": "PO-105", "kr": "PO-78", "priority": "high", "due": "2026-09-11", "done_at": "{yesterday}",
-             "note": "Орлов + Громов: отправить смету за август\nСделано: …\n\n- [x] …\n- [ ] …\n\n## Источники\n- Backlog.md: backlog/tasks/po-105, status Done, updatedAt {yesterday}\n"},
+             "note": "Тихонов + Белкин: отправить смету за август\nСделано: …\n\n- [x] …\n- [ ] …\n\n## Источники\n- Backlog.md: backlog/tasks/po-105, status Done, updatedAt {yesterday}\n"},
             {"note": "Заведены 5 инициатив: …\n1. PO-128 …\n2. PO-129…132 …\n\n- [ ] привязать к KR\n\n## Источники\n- Backlog.md: backlog task list --json, createdAt {yesterday} (PO-128…PO-132)\n"}]
 }
 ```
@@ -273,9 +273,9 @@ sources: [backlog.md, calendar|none, GROUND/RESULTS/<sprint-report>|none]
   "date": "{today}",
   "plan_draft": "План на сегодня {today}\n## Задачи\n- [ ] PO-… — кому · что\n\n## Созвоны\n- 11:00 … — что получить\n\n## Договорённости\n- [ ] PO-… — что проверить\n\n## Риски\n- …\n",
   "calendar": [{"start": "11:00", "end": "11:30", "title": "…", "with": ["…"], "organizer": "…", "agenda": "…",
-                "source": "календарь MTS Exchange, событие {today} 11:00"}],
+                "source": "календарь Corp Exchange, событие {today} 11:00"}],
   "tasks": [{"id": "PO-105", "kr": "PO-78", "priority": "high", "due": "{today}",
-             "note": "Орлов + Громов: отправить смету за август\nКому: Громов. Что: смета за август.\n\n- [ ] отправить\n\n## Источники\n- Backlog.md: backlog/tasks/po-105, due {today}, okr-kr:PO-78\n"}],
+             "note": "Тихонов + Белкин: отправить смету за август\nКому: Белкин. Что: смета за август.\n\n- [ ] отправить\n\n## Источники\n- Backlog.md: backlog/tasks/po-105, due {today}, okr-kr:PO-78\n"}],
   "controls": [{"id": "PO-117", "due": "2026-09-16",
                 "note": "Подправить для Музыки баг с генерацией виджета\nУ кого: —. Проверить: PRJ-1897 закрыт?\n\n- [ ] спросить статус\n\n## Источники\n- Backlog.md: backlog/tasks/po-117, okr-kind:control\n"}]
 }
@@ -300,8 +300,8 @@ sources: [backlog.md, calendar|none, GROUND/RESULTS/<sprint-report>|none]
 {
   "date": "{today}", "review_draft": "",
   "risks": [{"id": "PO-112", "kr": "PO-78", "priority": "high",
-             "title": "Вебхук заказов не работает, ломает CJM у VK",
-             "consequence": "заказы VK без статуса, срыв 20.09",
+             "title": "Вебхук заказов не работает, ломает CJM у PartnerV",
+             "consequence": "заказы PartnerV без статуса, срыв 20.09",
              "description": "…", "owner": "— (не назначен)", "status": "открыт",
              "sources": ["Backlog.md: backlog/tasks/po-112, okr-kind:risk, okr-kr:PO-78"]}]
 }
@@ -316,13 +316,13 @@ sources: [backlog.md, calendar|none, GROUND/RESULTS/<sprint-report>|none]
 ```json
 {
   "date": "{today}", "sprint": "2026Q3-S5",
-  "teams": [{"name": "Live", "comment_draft": "", "agreements_draft": "",
-             "agreements": [{"what": "схема БД Live.Процессинг", "from": "Лебедев", "when": "2026-09-15", "to": "Орлов", "done": false}],
+  "teams": [{"name": "TeamB", "comment_draft": "", "agreements_draft": "",
+             "agreements": [{"what": "схема БД TeamB.Процессинг", "from": "Фролов", "when": "2026-09-15", "to": "Тихонов", "done": false}],
              "stories": [{"id": "PO-133", "title": "…", "kr": "PO-36", "priority": "high",
                           "done": "что сделано", "left": "что осталось", "blockers": "нет",
                           "next": {"date": "2026-09-15", "text": "что проверять", "who": "у кого"},
                           "pulse": ["[Факт] 10.09 …", "[След. шаг] 15.09 …"],
-                          "sources": ["Backlog.md: backlog/tasks/po-133, sprint:2026Q3-S5, team:Live", "комментарии задачи"]}]}]
+                          "sources": ["Backlog.md: backlog/tasks/po-133, sprint:2026Q3-S5, team:TeamB", "комментарии задачи"]}]}]
 }
 ```
 
