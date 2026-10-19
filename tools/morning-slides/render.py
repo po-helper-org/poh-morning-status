@@ -32,7 +32,7 @@ import re
 import sys
 from pathlib import Path
 
-ID_RE = re.compile(r"\b(PO-\d+(?:…PO-\d+|…\d+)?|GDSLV-\d+)\b")
+ID_RE = re.compile(r"\b(PO-\d+(?:…PO-\d+|…\d+)?|[A-Z][A-Z0-9]+-\d+)\b")
 LATE_RE = re.compile(r"\s·\s(−\d+ д)")
 KPI_RE = re.compile(r"^KPI:\s*(.+)$")
 

@@ -101,7 +101,7 @@ PO начинает рабочий день. Информация о вчера�
 | **Задачи PO** | работает | Backlog.md как MCP-инструменты в dsh (`mcp__backlog__*`) |
 | **Цели спринта** | частично | milestone и KR-узлы есть; зафиксированного `ПЛАН-{sprint}.md` нет — до первого прогона `sprint-planner` слой честно помечается `[ЦЕЛЬ СПРИНТА НЕ ЗАФИКСИРОВАНА]` |
 | **Telegram рабочий** | коннектор нужен | Telethon user-session; рабочий образец — `export_forum_topics.py` в брендовом контуре, паттерн реестра — `mts-link-chat-sync` |
-| **JIRA + Confluence** | доступ есть, в dsh не подключён | MCP-сервер `atlassian` (jira.mts.ru, Confluence MTSLIVE) настроен для Claude Code через Docker-гейтвей; нужна строка в профиле dsh |
+| **JIRA + Confluence** | доступ есть, в dsh не подключён | MCP-сервер `atlassian` (jira.example.com, Confluence, пространство SPACE) настроен для Claude Code через Docker-гейтвей; нужна строка в профиле dsh |
 | **Email (Exchange)** | путь известен | DavMail-гейтвей, уже проверенный на корпоративном Exchange в [poh-scheduller](https://github.com/po-helper-org/poh-scheduller) для календаря (`davmail.mode=EWS`, NTLM); там `davmail.imapPort=0` — включение IMAP-плеча даёт почту тем же способом |
 
 Про Exchange отдельно: корпоративной регистрации приложения не будет и IMAP напрямую
@@ -188,3 +188,7 @@ dry-run (закрыть, перенести срок, создать задач�
 
 **Claude Code и другие IDE-агенты** — по конвенции контура PO: `install.sh` с выбором агента
 синкает `skills/` в нужный корень (не реализовано).
+
+## Лицензия
+
+[CC BY-SA 4.0](LICENSE): можно использовать и адаптировать с указанием авторства; производные работы — на тех же условиях. Все имена, ключи задач и адреса в примерах и тестах вымышленные.

@@ -52,7 +52,7 @@ python3 <poh-morning-status>/tools/morning-collect/collect.py            # --dat
 ```
 
 `<poh-morning-status>` — чекаут репозитория (на этой машине
-`/Users/aleksishmanov/projects/mts-org/poh-morning-status`). Скрипт сам делает
+`/path/to/poh-morning-status`). Скрипт сам делает
 весь сбор и классификацию и пишет `GROUND/PULSE/morning/{today}.data.json`:
 `backlog task list --json`, `backlog milestone list --plain`, `backlog task <id> --json`
 для задач на сегодня и ближайших договорённостей (≤ 20), календарь через
@@ -125,8 +125,8 @@ python3 <poh-morning-status>/tools/morning-collect/collect.py            # --dat
   Таблиц по ретро нет.
 - **Задачи сегодня** — `tasks_today`: `okr-kind:task` (и без kind), открытые,
   `due ≤ today`; `overdue_days > 0` — просрочена, пишется `· −N д`. «Кому / что
-  отправить» — из заголовка и `details[id].description` (`Ишманов + Бордюг:
-  отправить смету` → кому: Бордюг, что: смета за август). Нет адресата — «—», не
+  отправить» — из заголовка и `details[id].description` (`Орлов + Громов:
+  отправить смету` → кому: Громов, что: смета за август). Нет адресата — «—», не
   додумывать.
 - **Ближайшие договорённости** — `controls_soon`: `okr-kind:control`, открытые,
   просроченные + `due` в 7 дней + без срока. «У кого» — из заголовка/`assignees`;
@@ -163,7 +163,7 @@ python3 <poh-morning-status>/tools/morning-collect/collect.py            # --dat
 KPI: просрочено {n} · сегодня {m} · рисков без владельца {r} · закрыто вчера {d}
 
 ## Ретро {yesterday} — план {p} / сделано {s} / перенесено {t} / сорвано {f}
-- PO-105 · смета за август отправлена Бордюгу
+- PO-105 · смета за август отправлена Громову
 - заведены 5 инициатив: цифровой рубль, VTB.PAY, БП-схемы (PO-128…132)
 - созвонов: 2 (VK: переезд виджета; смета за август)
 (в слайдах этот раздел — виджеты Activity/Tasks из retro.json; список здесь — для чата)
@@ -172,18 +172,18 @@ KPI: просрочено {n} · сегодня {m} · рисков без вл�
 ### Созвоны
 | Время | С кем | Повестка |
 |---|---|---|
-| 11:00–11:30 | Бордюг, Юмшанов | смета, вебхук |
+| 11:00–11:30 | Громов, Лебедев | смета, вебхук |
 (или одна строка: [НЕТ ДАННЫХ: календарь — <причина из stderr>])
 ### Задачи
 | Задача | Кому · что | KR |
 |---|---|---|
 | PO-99 сетевая доступность GDS · −1 д | назначить исполнителя | — |
-| PO-105 смета за август | Бордюг · отправить смету | PO-78 |
+| PO-105 смета за август | Громов · отправить смету | PO-78 |
 
 ## Ближайшие договорённости
 | Договорённость | У кого | Проверить | How-to-demo | Срок |
 |---|---|---|---|---|
-| PO-117 баг виджета Музыки | — | GDSLV-1897 закрыт? | — | 16.09 |
+| PO-117 баг виджета Музыки | — | PRJ-1897 закрыт? | — | 16.09 |
 
 ## Риски по OKR
 **PO-78 [RESEARCH] замена Live-виджета на TL — 6, без владельца: 6**
@@ -238,7 +238,7 @@ sources: [backlog.md, calendar|none, GROUND/RESULTS/<sprint-report>|none]
   "activity": [{"start": "11:00", "end": "11:30", "with": ["…"],
                 "note": "VK: переезд виджета\n## Итог\n- …\n\n## Решения\n- [ ] … (PO-…)\n\n## Источники\n- календарь MTS Exchange, событие {yesterday} 11:00 (tools/calendar-today)\n- повестка события: «…»\n"}],
   "tasks": [{"id": "PO-105", "kr": "PO-78", "priority": "high", "due": "2026-09-11", "done_at": "{yesterday}",
-             "note": "Ишманов + Бордюг: отправить смету за август\nСделано: …\n\n- [x] …\n- [ ] …\n\n## Источники\n- Backlog.md: backlog/tasks/po-105, status Done, updatedAt {yesterday}\n"},
+             "note": "Орлов + Громов: отправить смету за август\nСделано: …\n\n- [x] …\n- [ ] …\n\n## Источники\n- Backlog.md: backlog/tasks/po-105, status Done, updatedAt {yesterday}\n"},
             {"note": "Заведены 5 инициатив: …\n1. PO-128 …\n2. PO-129…132 …\n\n- [ ] привязать к KR\n\n## Источники\n- Backlog.md: backlog task list --json, createdAt {yesterday} (PO-128…PO-132)\n"}]
 }
 ```
@@ -275,9 +275,9 @@ sources: [backlog.md, calendar|none, GROUND/RESULTS/<sprint-report>|none]
   "calendar": [{"start": "11:00", "end": "11:30", "title": "…", "with": ["…"], "organizer": "…", "agenda": "…",
                 "source": "календарь MTS Exchange, событие {today} 11:00"}],
   "tasks": [{"id": "PO-105", "kr": "PO-78", "priority": "high", "due": "{today}",
-             "note": "Ишманов + Бордюг: отправить смету за август\nКому: Бордюг. Что: смета за август.\n\n- [ ] отправить\n\n## Источники\n- Backlog.md: backlog/tasks/po-105, due {today}, okr-kr:PO-78\n"}],
+             "note": "Орлов + Громов: отправить смету за август\nКому: Громов. Что: смета за август.\n\n- [ ] отправить\n\n## Источники\n- Backlog.md: backlog/tasks/po-105, due {today}, okr-kr:PO-78\n"}],
   "controls": [{"id": "PO-117", "due": "2026-09-16",
-                "note": "Подправить для Музыки баг с генерацией виджета\nУ кого: —. Проверить: GDSLV-1897 закрыт?\n\n- [ ] спросить статус\n\n## Источники\n- Backlog.md: backlog/tasks/po-117, okr-kind:control\n"}]
+                "note": "Подправить для Музыки баг с генерацией виджета\nУ кого: —. Проверить: PRJ-1897 закрыт?\n\n- [ ] спросить статус\n\n## Источники\n- Backlog.md: backlog/tasks/po-117, okr-kind:control\n"}]
 }
 ```
 
@@ -317,7 +317,7 @@ sources: [backlog.md, calendar|none, GROUND/RESULTS/<sprint-report>|none]
 {
   "date": "{today}", "sprint": "2026Q3-S5",
   "teams": [{"name": "Live", "comment_draft": "", "agreements_draft": "",
-             "agreements": [{"what": "схема БД Live.Процессинг", "from": "Юмшанов", "when": "2026-09-15", "to": "Ишманов", "done": false}],
+             "agreements": [{"what": "схема БД Live.Процессинг", "from": "Лебедев", "when": "2026-09-15", "to": "Орлов", "done": false}],
              "stories": [{"id": "PO-133", "title": "…", "kr": "PO-36", "priority": "high",
                           "done": "что сделано", "left": "что осталось", "blockers": "нет",
                           "next": {"date": "2026-09-15", "text": "что проверять", "who": "у кого"},

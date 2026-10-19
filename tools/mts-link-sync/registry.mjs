@@ -4,7 +4,7 @@
 // `watched-chats.yaml` keeps working as-is:
 //
 //   - chat-id: "abc123"
-//     name: "Продуктовый штаб Ticketland"
+//     name: "Продуктовый штаб Альфа"
 //     purpose: "Слежу за продуктовыми решениями и блокерами"
 //     extract: "Решения, блокеры, дедлайны, спорные вопросы"
 //     added: 2026-07-09
