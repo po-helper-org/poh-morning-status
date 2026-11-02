@@ -19,11 +19,11 @@
 |---|---|
 | [`skills/morning`](skills/morning/SKILL.md) | навык `/morning`: ретро, план дня, риски по OKR, статус команд, «Нужны решения»; берёт снимок `morning-collect`, пишет `.md` + сайдкары `.retro/.today/.risks/.teams.json` и рендерит `.html` |
 | [`tools/morning-collect`](tools/morning-collect/README.md) | снимок данных для `/morning` (`<дата>.data.json`): Backlog.md, календарь, прошлый отчёт, отчёт спринта, PULSE — один детерминированный вызов вместо ~20 шагов модели; кэш на час, чтобы обрыв не стоил пересборки |
-| [`skills/mts-link-sync`](skills/mts-link-sync/SKILL.md) | выгрузка чатов MTS.Link (дельта-курсор, read-only) |
+| [`skills/corpchat-sync`](skills/corpchat-sync/SKILL.md) | выгрузка чатов корпоративного мессенджера (дельта-курсор, read-only) |
 | [`poh-morning-plugin`](poh-morning-plugin/README.md) | плагин DeepSeek Harness: провайдер навыков `skills/` + правило маршрутизации («план на сегодня» → `/morning`) |
 | [`tools/morning-slides`](tools/morning-slides/README.md) | рендерер отчёта в HTML: слайды на десктопе, лента на узком экране, заметки с блочным редактором, «Комментарии для LLM»; юнит + E2E на Playwright |
 | [`tools/calendar-today`](tools/calendar-today/README.md) | созвоны дня из Google-календаря «Corp Exchange» (poh-scheduller), read-only |
-| [`tools/mts-link-sync`](tools/mts-link-sync/README.md) | коннектор MTS.Link (WS, SSO-сессия PO) |
+| [`tools/corpchat-sync`](tools/corpchat-sync/README.md) | коннектор корпоративного мессенджера (WS, SSO-сессия PO) |
 
 ## Как проверить
 
@@ -32,17 +32,17 @@ cd poh-morning-plugin && pnpm install && pnpm build && pnpm test      # плаг
 cd ../tools/morning-slides && python3 -m unittest discover -s test     # рендер: 13 тестов
 cd ../morning-collect && python3 -m unittest discover -s test           # снимок: 9 тестов
 node test/e2e.mjs                                                       # E2E: Chromium, 6 сценариев
-cd ../mts-link-sync && npm test                                         # коннектор: офлайн-тесты
+cd ../corpchat-sync && npm test                                         # коннектор: офлайн-тесты
 python3 ../calendar-today/today.py --status                             # календарь: диагностика
 ```
 
-E2E берёт Chromium из `tools/mts-link-sync/.browsers` (`PLAYWRIGHT_BROWSERS_PATH`);
-без него — `cd tools/mts-link-sync && PLAYWRIGHT_BROWSERS_PATH=$PWD/.browsers npx playwright install chromium`.
+E2E берёт Chromium из `tools/corpchat-sync/.browsers` (`PLAYWRIGHT_BROWSERS_PATH`);
+без него — `cd tools/corpchat-sync && PLAYWRIGHT_BROWSERS_PATH=$PWD/.browsers npx playwright install chromium`.
 
 ## Ситуация
 
-PO начинает рабочий день. Информация о вчерашнем дне размазана по MTS.Link (чаты и
-созвоны), рабочему Telegram, корпоративной почте Exchange, JIRA и Confluence. Цели
+PO начинает рабочий день. Информация о вчерашнем дне размазана по корпоративному мессенджеру (чаты),
+корпоративной ВКС (созвоны), рабочему Telegram, корпоративной почте Exchange, JIRA и Confluence. Цели
 спринта лежат в артефактах планирования, задачи — в личном планнере. Обход всех
 источников занимает от сорока минут и делается нерегулярно, поэтому сигнал об
 отклонении PO получает не утром, а на эскалации.
@@ -96,11 +96,11 @@ PO начинает рабочий день. Информация о вчера�
 
 | Канал | Состояние | Чем закрывается |
 |---|---|---|
-| **MTS.Link — чаты** | коннектор работает | `mts-link-chat-sync` (WS-API, read-only, SSO-сессия) + навыки `/chat-watch`, `/chat-sync`; классификация — `/link-radar` |
-| **MTS.Link — созвоны** | коннектор работает | `/transcript-sync` → `/daily-review` (стендапы) и `/summary` (прочие) |
+| **Корпоративный мессенджер — чаты** | коннектор работает | прежний коннектор чатов из `my-workspace` (WS-API, read-only, SSO-сессия) + навыки `/chat-watch`, `/chat-sync`; классификация — `/link-radar` |
+| **Корпоративная ВКС — созвоны** | коннектор работает | `/transcript-sync` → `/daily-review` (стендапы) и `/summary` (прочие) |
 | **Задачи PO** | работает | Backlog.md как MCP-инструменты в dsh (`mcp__backlog__*`) |
 | **Цели спринта** | частично | milestone и KR-узлы есть; зафиксированного `ПЛАН-{sprint}.md` нет — до первого прогона `sprint-planner` слой честно помечается `[ЦЕЛЬ СПРИНТА НЕ ЗАФИКСИРОВАНА]` |
-| **Telegram рабочий** | коннектор нужен | Telethon user-session; рабочий образец — `export_forum_topics.py` в брендовом контуре, паттерн реестра — `mts-link-chat-sync` |
+| **Telegram рабочий** | коннектор нужен | Telethon user-session; рабочий образец — `export_forum_topics.py` в брендовом контуре, паттерн реестра — `corpchat-sync` |
 | **JIRA + Confluence** | доступ есть, в dsh не подключён | MCP-сервер `atlassian` (jira.example.com, Confluence, пространство SPACE) настроен для Claude Code через Docker-гейтвей; нужна строка в профиле dsh |
 | **Email (Exchange)** | путь известен | DavMail-гейтвей, уже проверенный на корпоративном Exchange в [poh-scheduller](https://github.com/po-helper-org/poh-scheduller) для календаря (`davmail.mode=EWS`, NTLM); там `davmail.imapPort=0` — включение IMAP-плеча даёт почту тем же способом |
 

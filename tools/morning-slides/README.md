@@ -9,7 +9,7 @@
 python3 render.py GROUND/PULSE/morning/2026-09-11.md        # → рядом .html
 python3 render.py report.md -o out.html
 python3 -m unittest discover -s test                        # 8 юнит-тестов рендера
-node test/e2e.mjs                                           # E2E кликов: Chromium из ../mts-link-sync, JS вкл/выкл, 700px, пустые данные
+node test/e2e.mjs                                           # E2E кликов: Chromium из ../corpchat-sync, JS вкл/выкл, 700px, пустые данные
 ```
 
 Разметка, которую понимает: `# Утро …`, строка `KPI: a N · b M · …`, `## `, `### `,

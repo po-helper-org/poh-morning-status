@@ -1,4 +1,4 @@
-// mts-link-sync — export MTS Link chat messages into markdown for the morning brief.
+// corpchat-sync — export corporate messenger chat messages into markdown for the morning brief.
 //
 // Modes:
 //   --status                              offline: config, session, registry, cursor age
@@ -9,7 +9,7 @@
 //   --unwatch <chat-id>                   remove a registry entry
 //   --pull [--since-last | --yesterday | --days N | --from D --to D] [--dry] [--all]
 //
-// READ-ONLY against the MTS Link chat API (see wsClient.mjs). It sends only `token`,
+// READ-ONLY against the messenger chat API (see wsClient.mjs). It sends only `token`,
 // `ping` and `Get*` queries — never Chat.MarkMessagesAsRead, which would clear the
 // PO's unread counters. The tool must be invisible to the account it reads.
 
@@ -95,14 +95,14 @@ async function fetchWindow(rpc, chatId, fromMs, toMs) {
 // ---------- offline status ----------
 function printStatus() {
   const cfg = describeConfig();
-  console.log("Конфигурация mts-link-sync\n");
+  console.log("Конфигурация corpchat-sync\n");
   console.log(`  SSO-сессия:  ${cfg.authFile}`);
   console.log(`               ${cfg.authExists ? `есть, обновлена ${cfg.authAgeDays} дн назад` : "НЕТ → npm run login"}`);
   if (cfg.outputDir) {
     console.log(`  Выгрузки:    ${cfg.outputDir} ${cfg.outputExists ? "" : "(НЕ СУЩЕСТВУЕТ)"}`);
     console.log(`  Реестр:      ${cfg.registryFile} ${cfg.registryExists ? "" : "(НЕ НАЙДЕН)"}`);
   } else {
-    console.log("  Выгрузки:    [MTS_LINK_OUTPUT_DIR не задан]");
+    console.log("  Выгрузки:    [CORPCHAT_OUTPUT_DIR не задан]");
   }
 
   if (cfg.registryExists) {

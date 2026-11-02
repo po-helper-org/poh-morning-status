@@ -9,7 +9,7 @@ import { join } from "node:path";
 
 import { readCursor, writeCursor, advance, watermark, windowStart, CURSOR_VERSION } from "../cursor.mjs";
 
-const tmp = () => mkdtempSync(join(tmpdir(), "mls-cursor-"));
+const tmp = () => mkdtempSync(join(tmpdir(), "corpchat-cursor-"));
 
 test("missing cursor file is a first run, not an error", () => {
   const dir = tmp();

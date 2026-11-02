@@ -1,6 +1,6 @@
-// One-time interactive login for MTS Link.
+// One-time interactive login for the corporate messenger.
 //
-// MTS Link uses corporate SSO, which cannot be automated. A real visible browser opens,
+// The messenger uses corporate SSO, which cannot be automated. A real visible browser opens,
 // the PO logs in by hand, and the resulting session is persisted to AUTH_FILE.
 // harvest.mjs then reuses that session headlessly.
 //
@@ -18,15 +18,16 @@
 // config.mjs is imported FIRST on purpose — same reason as in harvest.mjs:
 // Playwright reads PLAYWRIGHT_BROWSERS_PATH at module evaluation, and ESM hoists
 // imports, so `.env` must be loaded before "playwright" is evaluated.
-import { AUTH_FILE } from "./config.mjs";
+import { AUTH_FILE, chatsUrl } from "./config.mjs";
 import { chromium } from "playwright";
 import { createInterface } from "node:readline/promises";
 import { stdin, stdout } from "node:process";
 import { mkdirSync, existsSync, copyFileSync, readFileSync } from "node:fs";
 import { dirname } from "node:path";
 
-const BASE_URL = process.env.MTS_LINK_LOGIN_URL || "https://my.mts-link.ru/";
-const CHATS_URL = process.env.MTS_LINK_CHATS_URL || "https://my.mts-link.ru/chats/";
+let CHATS_URL;
+try { CHATS_URL = chatsUrl(); } catch (e) { console.error(e.message); process.exit(1); }
+const BASE_URL = process.env.CORPCHAT_LOGIN_URL || CHATS_URL;
 
 /** A saved state with no cookies cannot authenticate anything. */
 function countCookies(path) {

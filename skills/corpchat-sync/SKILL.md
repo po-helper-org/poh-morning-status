@@ -1,11 +1,11 @@
 ---
-name: mts-link-sync
-description: "Выгрузка сообщений отслеживаемых чатов MTS.Link в markdown для утреннего брифа PO. Инкрементально по дельта-курсору (--since-last) или за конкретный день (--yesterday); пишет по файлу на чат в GROUND/_intake/chats с purpose/extract во frontmatter. Строго read-only: не шлёт сообщений и не сбивает счётчики непрочитанного. Используй когда: выгрузи чаты, что нового в чатах, синхронизируй MTS Link, проверь статус выгрузки, настрой слежку за чатом, /mts-link-sync."
+name: corpchat-sync
+description: "Выгрузка сообщений отслеживаемых чатов корпоративного мессенджера в markdown для утреннего брифа PO. Инкрементально по дельта-курсору (--since-last) или за конкретный день (--yesterday); пишет по файлу на чат в GROUND/_intake/chats с purpose/extract во frontmatter. Строго read-only: не шлёт сообщений и не сбивает счётчики непрочитанного. Используй когда: выгрузи чаты, что нового в чатах, синхронизируй корпоративный мессенджер, проверь статус выгрузки, настрой слежку за чатом, /corpchat-sync."
 ---
 
-# Навык: выгрузка чатов MTS.Link
+# Навык: выгрузка чатов корпоративного мессенджера
 
-Обёртка над `tools/mts-link-sync/`. Ты качаешь сырые сообщения за окно в markdown;
+Обёртка над `tools/corpchat-sync/`. Ты качаешь сырые сообщения за окно в markdown;
 разбор содержимого — отдельная работа поверх скачанных файлов, под `purpose`/`extract`
 каждого чата.
 
@@ -22,12 +22,12 @@ description: "Выгрузка сообщений отслеживаемых ч�
 ## Константы окружения
 
 ```yaml
-tool_dir:  "<repo>/tools/mts-link-sync"          # poh-morning-status
-config:    "<tool_dir>/.env"                     # MTS_LINK_OUTPUT_DIR обязателен
-dumps:     "GROUND/_intake/chats/"               # из MTS_LINK_OUTPUT_DIR
+tool_dir:  "<repo>/tools/corpchat-sync"          # poh-morning-status
+config:    "<tool_dir>/.env"                     # CORPCHAT_OUTPUT_DIR и CORPCHAT_CHATS_URL обязательны
+dumps:     "GROUND/_intake/chats/"               # из CORPCHAT_OUTPUT_DIR
 registry:  "<dumps>/watched-chats.yaml"
 cursor:    "<dumps>/.sync-cursor.json"
-session:   "~/.mts-link-chat-sync/auth.json"     # SSO-секрет: не читать, не коммитить
+session:   "~/.corpchat-sync/auth.json"          # SSO-секрет: не читать, не коммитить
 ```
 
 ## Шаг 0 — всегда начинай со `--status`
@@ -98,11 +98,12 @@ node sync.mjs --unwatch "<chat-id>"
 
 | Симптом | Что это | Действие |
 |---|---|---|
-| `MTS_LINK_OUTPUT_DIR не задан` | нет `.env` | скопировать `.env.example` → `.env`, указать путь до `GROUND/_intake/chats` |
+| `CORPCHAT_OUTPUT_DIR не задан` | нет `.env` | скопировать `.env.example` → `.env`, указать путь до `GROUND/_intake/chats` |
+| `CORPCHAT_CHATS_URL не задан` | в `.env` нет адреса мессенджера | СТОП, PO вписывает адрес веб-чатов в `.env` |
 | `Нет SSO-сессии` | не было входа | СТОП, PO делает `npm run login` |
 | `Session expired — redirected to login` | сессия протухла | СТОП, PO делает `npm run login` заново |
 | `Could not capture the chat WS token` | сменился протокол или не открылся сокет | СТОП, сообщить PO; чинится в инструменте, не обходится |
-| `Реестр пуст` при существующем файле | расхождение путей | прогнать `--status`, сверить `MTS_LINK_OUTPUT_DIR` |
+| `Реестр пуст` при существующем файле | расхождение путей | прогнать `--status`, сверить `CORPCHAT_OUTPUT_DIR` |
 | `browserType.launch: Executable doesn't exist` | кэш браузеров почищен или недоступен | `PLAYWRIGHT_BROWSERS_PATH=$PWD/.browsers npx playwright install chromium`, путь прописать в `.env`; это чинится без PO |
 
 Протухшая сессия — **всегда СТОП**. Не пытайся логиниться скриптово: SSO проходит только

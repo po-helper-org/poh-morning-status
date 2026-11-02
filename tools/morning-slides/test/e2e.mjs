@@ -1,6 +1,6 @@
 // E2E кликов по слайду ретро: настоящий Chromium, файл открыт как file://.
 // Запуск: node test/e2e.mjs   (после `python3 render.py test/sample.md -o test/out/demo.html`)
-// Playwright и браузер берутся из ../mts-link-sync (там уже установлены).
+// Playwright и браузер берутся из ../corpchat-sync (там уже установлены).
 import { createRequire } from 'node:module'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { dirname, resolve } from 'node:path'
@@ -9,9 +9,9 @@ import { execFileSync } from 'node:child_process'
 import assert from 'node:assert/strict'
 
 const here = dirname(fileURLToPath(import.meta.url))
-const linkSync = resolve(here, '..', '..', 'mts-link-sync')
-process.env.PLAYWRIGHT_BROWSERS_PATH ??= resolve(linkSync, '.browsers')
-const { chromium } = createRequire(resolve(linkSync, 'package.json'))('playwright')
+const chatSync = resolve(here, '..', '..', 'corpchat-sync')
+process.env.PLAYWRIGHT_BROWSERS_PATH ??= resolve(chatSync, '.browsers')
+const { chromium } = createRequire(resolve(chatSync, 'package.json'))('playwright')
 
 const out = resolve(here, 'out', 'demo.html')
 {
