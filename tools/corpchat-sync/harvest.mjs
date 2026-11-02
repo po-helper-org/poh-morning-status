@@ -1,6 +1,6 @@
 // Harvest the chat WebSocket credentials from a live /chats/ handshake.
 //
-// MTS Link chats talk JSON-RPC over a WebSocket that the SPA authenticates with
+// Corporate messenger chats talk JSON-RPC over a WebSocket that the SPA authenticates with
 // a short-lived JWT. Rather than mint that JWT ourselves, we let the real app do
 // its handshake in a headless Playwright browser (using the saved SSO session)
 // and snag {wsUrl, token, orgId} off the frames it sends. wsClient.mjs then opens
@@ -10,7 +10,7 @@
 // PLAYWRIGHT_BROWSERS_PATH once at module evaluation. ESM hoists all imports, so
 // listing "playwright" above config.mjs would evaluate it before the file is read
 // and the browser location from `.env` would be silently ignored.
-import { AUTH_FILE, CHATS_URL } from "./config.mjs";
+import { AUTH_FILE, chatsUrl } from "./config.mjs";
 import { chromium } from "playwright";
 import { existsSync } from "node:fs";
 
@@ -18,6 +18,7 @@ const TOKEN_RE = /"name":"token","param":\{"token":"([^"]+)"/;
 const ORG_RE = /"organizationId":"([0-9a-f-]{36})"/;
 
 export async function harvest({ timeoutMs = 60000 } = {}) {
+  const url = chatsUrl();
   if (!existsSync(AUTH_FILE)) {
     throw new Error(`No saved session (${AUTH_FILE}). Run once: npm run login`);
   }
@@ -37,7 +38,7 @@ export async function harvest({ timeoutMs = 60000 } = {}) {
       });
     });
 
-    await page.goto(CHATS_URL, { waitUntil: "networkidle", timeout: timeoutMs });
+    await page.goto(url, { waitUntil: "networkidle", timeout: timeoutMs });
     if (/login|auth|sso|signin/i.test(page.url())) {
       throw new Error("Session expired — redirected to login. Re-run: npm run login");
     }

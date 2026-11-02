@@ -19,8 +19,8 @@ import { dirname } from "node:path";
 import YAML from "yaml";
 import { registryFile } from "./config.mjs";
 
-const HEADER = `# Отслеживаемые чаты MTS Link — их выгружает \`mts-link-sync --pull\`.
-# Правь через скилл /mts-watch или руками. Одна запись — один чат.
+const HEADER = `# Отслеживаемые чаты корпоративного мессенджера — их выгружает \`corpchat-sync --pull\`.
+# Правь через скилл /chat-watch или руками. Одна запись — один чат.
 # purpose = зачем следишь; extract = что вытаскивать (направляет анализ агента).
 `;
 

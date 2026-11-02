@@ -18,7 +18,7 @@ const TOOL_DIR = dirname(dirname(fileURLToPath(import.meta.url)));
 /**
  * Run describeConfig() in a child with a controlled environment.
  *
- * MTS_LINK_ENV_FILE is pointed at a nonexistent path so the developer's own `.env`
+ * CORPCHAT_ENV_FILE is pointed at a nonexistent path so the developer's own `.env`
  * cannot leak in: without it these cases pass locally for the wrong reason and would
  * stop detecting the very misconfiguration they exist to catch.
  */
@@ -31,7 +31,8 @@ function describeWith(env) {
     env: {
       PATH: process.env.PATH,
       HOME: process.env.HOME,
-      MTS_LINK_ENV_FILE: join(tmpdir(), "mls-no-such-env-file"),
+      CORPCHAT_ENV_FILE: join(tmpdir(), "corpchat-no-such-env-file"),
+      CORPCHAT_CHATS_URL: "https://chat.example.com/chats/",
       ...env,
     },
     encoding: "utf8",
@@ -40,7 +41,7 @@ function describeWith(env) {
 }
 
 function fixture() {
-  const dir = mkdtempSync(join(tmpdir(), "mls-cfg-"));
+  const dir = mkdtempSync(join(tmpdir(), "corpchat-cfg-"));
   const auth = join(dir, "auth.json");
   const out = join(dir, "chats");
   mkdirSync(out);
@@ -52,7 +53,7 @@ function fixture() {
 test("a complete setup reports ok with no problems", () => {
   const f = fixture();
   try {
-    const c = describeWith({ MTS_LINK_AUTH_FILE: f.auth, MTS_LINK_OUTPUT_DIR: f.out });
+    const c = describeWith({ CORPCHAT_AUTH_FILE: f.auth, CORPCHAT_OUTPUT_DIR: f.out });
     assert.equal(c.ok, true);
     assert.deepEqual(c.problems, []);
   } finally { rmSync(f.dir, { recursive: true, force: true }); }
@@ -63,16 +64,25 @@ test("a missing output dir setting is a problem, not a silent default", () => {
   // folder while exiting 0 — a morning brief would have reported a calm day.
   const f = fixture();
   try {
-    const c = describeWith({ MTS_LINK_AUTH_FILE: f.auth });
+    const c = describeWith({ CORPCHAT_AUTH_FILE: f.auth });
     assert.equal(c.ok, false);
-    assert.match(c.problems.join("\n"), /MTS_LINK_OUTPUT_DIR/);
+    assert.match(c.problems.join("\n"), /CORPCHAT_OUTPUT_DIR/);
+  } finally { rmSync(f.dir, { recursive: true, force: true }); }
+});
+
+test("a missing chats URL is a problem: there is no built-in host", () => {
+  const f = fixture();
+  try {
+    const c = describeWith({ CORPCHAT_AUTH_FILE: f.auth, CORPCHAT_OUTPUT_DIR: f.out, CORPCHAT_CHATS_URL: "" });
+    assert.equal(c.ok, false);
+    assert.match(c.problems.join("\n"), /CORPCHAT_CHATS_URL/);
   } finally { rmSync(f.dir, { recursive: true, force: true }); }
 });
 
 test("a nonexistent output dir is named explicitly", () => {
   const f = fixture();
   try {
-    const c = describeWith({ MTS_LINK_AUTH_FILE: f.auth, MTS_LINK_OUTPUT_DIR: join(f.dir, "nope") });
+    const c = describeWith({ CORPCHAT_AUTH_FILE: f.auth, CORPCHAT_OUTPUT_DIR: join(f.dir, "nope") });
     assert.equal(c.ok, false);
     assert.match(c.problems.join("\n"), /не существует/);
   } finally { rmSync(f.dir, { recursive: true, force: true }); }
@@ -82,7 +92,7 @@ test("a missing registry is a problem", () => {
   const f = fixture();
   try {
     rmSync(join(f.out, "watched-chats.yaml"));
-    const c = describeWith({ MTS_LINK_AUTH_FILE: f.auth, MTS_LINK_OUTPUT_DIR: f.out });
+    const c = describeWith({ CORPCHAT_AUTH_FILE: f.auth, CORPCHAT_OUTPUT_DIR: f.out });
     assert.equal(c.ok, false);
     assert.match(c.problems.join("\n"), /Реестр не найден/);
   } finally { rmSync(f.dir, { recursive: true, force: true }); }
@@ -91,7 +101,7 @@ test("a missing registry is a problem", () => {
 test("a missing session is a problem", () => {
   const f = fixture();
   try {
-    const c = describeWith({ MTS_LINK_AUTH_FILE: join(f.dir, "gone.json"), MTS_LINK_OUTPUT_DIR: f.out });
+    const c = describeWith({ CORPCHAT_AUTH_FILE: join(f.dir, "gone.json"), CORPCHAT_OUTPUT_DIR: f.out });
     assert.equal(c.ok, false);
     assert.match(c.problems.join("\n"), /Нет SSO-сессии/);
   } finally { rmSync(f.dir, { recursive: true, force: true }); }
@@ -104,7 +114,7 @@ test("a stale session warns without claiming to know it is dead", () => {
   try {
     const old = Date.now() / 1000 - 30 * 86400;
     utimesSync(f.auth, old, old);
-    const c = describeWith({ MTS_LINK_AUTH_FILE: f.auth, MTS_LINK_OUTPUT_DIR: f.out });
+    const c = describeWith({ CORPCHAT_AUTH_FILE: f.auth, CORPCHAT_OUTPUT_DIR: f.out });
     assert.equal(c.ok, true, "age alone must not block a run");
     assert.equal(c.authAgeDays >= 29, true);
     assert.match(c.warnings.join("\n"), /протухла/);
@@ -114,7 +124,7 @@ test("a stale session warns without claiming to know it is dead", () => {
 test("a fresh session produces no staleness warning", () => {
   const f = fixture();
   try {
-    const c = describeWith({ MTS_LINK_AUTH_FILE: f.auth, MTS_LINK_OUTPUT_DIR: f.out });
+    const c = describeWith({ CORPCHAT_AUTH_FILE: f.auth, CORPCHAT_OUTPUT_DIR: f.out });
     assert.deepEqual(c.warnings, []);
   } finally { rmSync(f.dir, { recursive: true, force: true }); }
 });

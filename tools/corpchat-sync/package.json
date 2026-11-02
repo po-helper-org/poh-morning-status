@@ -1,9 +1,9 @@
 {
-  "name": "mts-link-sync",
+  "name": "corpchat-sync",
   "version": "1.0.0",
   "type": "module",
   "private": true,
-  "description": "Export MTS Link chat messages into markdown for the PO morning brief. Read-only, cursor-aware.",
+  "description": "Export corporate messenger chat messages into markdown for the PO morning brief. Read-only, cursor-aware.",
   "engines": {
     "node": ">=21"
   },

@@ -73,6 +73,8 @@ test("dump carries the frontmatter the radar reads, and groups by day", () => {
     resolvedAuthors: new Map([["u1", "Власов"], ["u2", "Щербаков"]]),
   });
   assert.match(md, /^---\n/);
+  assert.match(md, /^type: corpchat$/m);
+  assert.match(md, /^source: corpchat$/m);
   assert.match(md, /chat-id: "c1"/);
   assert.match(md, /purpose: "блокеры"/);
   assert.match(md, /msg-count: 2/);

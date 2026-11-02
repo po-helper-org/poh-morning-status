@@ -1,4 +1,4 @@
-// Configuration for mts-link-sync.
+// Configuration for corpchat-sync.
 //
 // Nothing personal is baked in. Override anything via a local `.env` file in the
 // tool directory (copy `.env.example` → `.env`) or via real environment variables.
@@ -21,9 +21,9 @@ const TOOL_DIR = dirname(fileURLToPath(import.meta.url));
 
 // --- load .env, if present (built-in, no dependency) ---
 // Real environment variables win: `loadEnvFile` does not overwrite what is already set.
-// MTS_LINK_ENV_FILE redirects which file is read, so one checkout can serve several
+// CORPCHAT_ENV_FILE redirects which file is read, so one checkout can serve several
 // vaults and so diagnostics can be exercised against a known-empty environment.
-const ENV_FILE = process.env.MTS_LINK_ENV_FILE || join(TOOL_DIR, ".env");
+const ENV_FILE = process.env.CORPCHAT_ENV_FILE || join(TOOL_DIR, ".env");
 try { process.loadEnvFile(ENV_FILE); } catch { /* no .env — use real env */ }
 
 // Resolve a path setting: absolute stays, `~` expands, relative is anchored to the tool dir.
@@ -33,15 +33,27 @@ function resolvePath(value, fallback) {
   return isAbsolute(v) ? v : join(TOOL_DIR, v);
 }
 
-// Entry point of the chats web app. Override for a different MTS Link instance.
-export const CHATS_URL = process.env.MTS_LINK_CHATS_URL || "https://my.mts-link.ru/chats/";
+// Entry point of the chats web app. REQUIRED, no default: the host is deployment-specific.
+export const CHATS_URL = process.env.CORPCHAT_CHATS_URL || "";
+
+/** Return CHATS_URL, or throw with an actionable message when it is not set. */
+export function chatsUrl() {
+  if (!CHATS_URL) {
+    throw new Error(
+      "CORPCHAT_CHATS_URL не задан — не знаю адрес веб-чатов мессенджера.\n" +
+      `  Добавь в ${join(TOOL_DIR, ".env")} (см. .env.example) строку:\n` +
+      "    CORPCHAT_CHATS_URL=https://chat.example.com/chats/"
+    );
+  }
+  return CHATS_URL;
+}
 
 // Saved browser session (cookies + localStorage), produced by `npm run login`.
 // Lives in the home dir, OUTSIDE any repo — it is a personal SSO secret.
-export const AUTH_FILE = resolvePath(process.env.MTS_LINK_AUTH_FILE, "~/.mts-link-chat-sync/auth.json");
+export const AUTH_FILE = resolvePath(process.env.CORPCHAT_AUTH_FILE, "~/.corpchat-sync/auth.json");
 
 // Where exported chat markdown and the cursor land. NO DEFAULT — see the note above.
-const rawOutput = process.env.MTS_LINK_OUTPUT_DIR;
+const rawOutput = process.env.CORPCHAT_OUTPUT_DIR;
 
 /**
  * Resolve the output dir, or throw with an actionable message.
@@ -51,9 +63,9 @@ const rawOutput = process.env.MTS_LINK_OUTPUT_DIR;
 export function outputDir() {
   if (!rawOutput) {
     throw new Error(
-      "MTS_LINK_OUTPUT_DIR не задан — не знаю, куда писать выгрузки.\n" +
+      "CORPCHAT_OUTPUT_DIR не задан — не знаю, куда писать выгрузки.\n" +
       `  Создай ${join(TOOL_DIR, ".env")} (см. .env.example) со строкой:\n` +
-      "    MTS_LINK_OUTPUT_DIR=/абсолютный/путь/до/GROUND/_intake/chats\n" +
+      "    CORPCHAT_OUTPUT_DIR=/абсолютный/путь/до/GROUND/_intake/chats\n" +
       "  Без него инструмент молча читал бы пустой реестр не из того места."
     );
   }
@@ -62,15 +74,15 @@ export function outputDir() {
 
 // Registry of watched chats. Defaults to sitting alongside the output.
 export function registryFile() {
-  return process.env.MTS_LINK_REGISTRY
-    ? resolvePath(process.env.MTS_LINK_REGISTRY)
+  return process.env.CORPCHAT_REGISTRY
+    ? resolvePath(process.env.CORPCHAT_REGISTRY)
     : join(outputDir(), "watched-chats.yaml");
 }
 
 // Delta cursor: per-chat watermark of the last exported message time.
 export function cursorFile() {
-  return process.env.MTS_LINK_CURSOR
-    ? resolvePath(process.env.MTS_LINK_CURSOR)
+  return process.env.CORPCHAT_CURSOR
+    ? resolvePath(process.env.CORPCHAT_CURSOR)
     : join(outputDir(), ".sync-cursor.json");
 }
 
@@ -87,6 +99,11 @@ export const AUTH_STALE_DAYS = 7;
 
 export function describeConfig() {
   const out = { ok: true, problems: [], warnings: [], authFile: AUTH_FILE, chatsUrl: CHATS_URL };
+
+  if (!CHATS_URL) {
+    out.ok = false;
+    out.problems.push("CORPCHAT_CHATS_URL не задан. Укажи в .env адрес веб-чатов мессенджера (см. .env.example).");
+  }
 
   out.authExists = existsSync(AUTH_FILE);
   if (!out.authExists) {
@@ -111,7 +128,7 @@ export function describeConfig() {
   if (!rawOutput) {
     out.ok = false;
     out.problems.push(
-      "MTS_LINK_OUTPUT_DIR не задан. Скопируй .env.example → .env и укажи путь до GROUND/_intake/chats."
+      "CORPCHAT_OUTPUT_DIR не задан. Скопируй .env.example → .env и укажи путь до GROUND/_intake/chats."
     );
     return out;
   }

@@ -62,14 +62,14 @@ export function resolveWindow({ from, to, days, yesterday, now = Date.now() } = 
 export function renderDump({ name, chatId, windowLabel, purpose, extract, messages, resolvedAuthors, incremental }) {
   const lines = [
     "---",
-    "type: mts-chat",
+    "type: corpchat",
     `chat-id: "${chatId}"`,
     `window: ${windowLabel}`,
     `purpose: ${JSON.stringify(purpose || "")}`,
     `extract: ${JSON.stringify(extract || "")}`,
     `msg-count: ${messages.length}`,
     `incremental: ${incremental ? "true" : "false"}`,
-    "source: MTS Link",
+    "source: corpchat",
     "---",
     "",
     `# ${name}`,

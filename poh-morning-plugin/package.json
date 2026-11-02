@@ -1,7 +1,7 @@
 {
   "name": "poh-morning-plugin",
   "version": "0.1.0",
-  "description": "Утренний бриф PO для DeepSeek Harness: подключает навыки poh-morning-status (/morning, /mts-link-sync) как отдельный корень навыков",
+  "description": "Утренний бриф PO для DeepSeek Harness: подключает навыки poh-morning-status (/morning, /corpchat-sync) как отдельный корень навыков",
   "license": "MIT",
   "type": "module",
   "main": "lib/index.js",

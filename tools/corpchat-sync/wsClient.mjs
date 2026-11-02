@@ -1,4 +1,4 @@
-// Minimal read-only JSON-RPC client for the MTS Link chat WebSocket.
+// Minimal read-only JSON-RPC client for the corporate messenger chat WebSocket.
 //
 // Protocol (reverse-engineered): server sends control "open" → we send control
 // "token" with the harvested JWT → server "setTokenResp" ok → then request/response
